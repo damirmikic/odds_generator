@@ -25,7 +25,7 @@ CORS(app)
 # Naziv fajla za keširanje
 CACHE_FILE = 'fbref_stats.json'
 
-# --- AŽURIRANO: Dodata je osnovna ruta za proveru statusa ---
+# --- Osnovna ruta za proveru statusa ---
 @app.route('/')
 def index():
     return jsonify({"status": "Odds Generator API is running successfully."})
@@ -60,10 +60,10 @@ def fetch_and_save_stats():
             "misc": "https://fbref.com/en/comps/Big5/misc/players/Big-5-European-Leagues-Stats"
         }
         
-        dataframes = []
+        dataframes = {}
 
         def parse_table(driver, table_container_id):
-            wait_time = 30 # Povećano vreme čekanja za svaki slučaj
+            wait_time = 30
             print(f"Čekam na kontejner tabele: '{table_container_id}'...")
             table_container = WebDriverWait(driver, wait_time).until(
                 EC.presence_of_element_located((By.ID, table_container_id))
@@ -77,27 +77,23 @@ def fetch_and_save_stats():
             table_element = soup.find('table')
             if table_element:
                 table_html_content = str(table_element)
-                print("Tabela pronađena direktno.")
             else:
-                print("Tabela nije pronađena direktno, tražim u komentarima...")
                 comments = soup.find_all(string=lambda text: isinstance(text, Comment))
                 for comment in comments:
                     if BeautifulSoup(comment, 'lxml').find('table'):
                         table_html_content = comment
-                        print("Tabela pronađena u komentaru.")
                         break
             
             if not table_html_content:
                 raise Exception(f"Nije moguće pronaći tabelu unutar kontejnera '{table_container_id}'")
 
-            df_list = pd.read_html(io.StringIO(table_html_content))
-            if not df_list:
-                raise Exception(f"Pandas nije uspeo da pročita tabelu iz HTML-a za '{table_container_id}'")
+            df = pd.read_html(io.StringIO(table_html_content))[0]
             
-            df = df_list[0]
-            
+            # AŽURIRANO: Najrobusniji način za čišćenje zaglavlja
             if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.droplevel(0)
+                df.columns = ['_'.join(col).strip() for col in df.columns.values]
+            
+            df = df.rename(columns=lambda x: x.replace(' ', '_').replace('%', 'Pct'))
             
             if 'Player' in df.columns:
                 df = df[df['Player'] != 'Player'].reset_index(drop=True)
@@ -109,34 +105,23 @@ def fetch_and_save_stats():
             driver.get(url)
             df = parse_table(driver, f'div_stats_{key}')
             if df is not None:
-                # Biramo samo relevantne kolone ODMAH
-                if key == 'standard':
-                    dataframes.append(df[['Player', 'Squad', 'Age', '90s', 'Gls', 'Ast']])
-                elif key == 'shooting':
-                    dataframes.append(df[['Player', 'Squad', 'Sh', 'SoT']])
-                elif key == 'passing':
-                    # Kolona 'Att' je pod duplim zaglavljem 'Total'
-                    df_passing_rel = df.copy()
-                    # Robustan način da se pristupi kolonama
-                    if isinstance(df_passing_rel.columns, pd.MultiIndex):
-                        df_passing_rel.columns = ['_'.join(col).strip() for col in df_passing_rel.columns.values]
-                    dataframes.append(df_passing_rel[['Player', 'Squad', 'Total_Att']])
-                elif key == 'misc':
-                    dataframes.append(df[['Player', 'Squad', 'Fls', 'Fld']])
-                print(f"Tabela '{key}' uspešno preuzeta i obrađena.")
+                dataframes[key] = df
+                print(f"Tabela '{key}' uspešno preuzeta.")
             else:
                 raise Exception(f"DataFrame za '{key}' je None.")
             time.sleep(3)
 
-        # --- AŽURIRANA I NAJPOUZDANIJA LOGIKA SPAJANJA ---
+        # Spajanje tabela
         print("\nSpajam preuzete tabele...")
-        # Koristimo 'reduce' da bismo iterativno spojili sve tabele
-        df_final = reduce(lambda left, right: pd.merge(left, right, on=['Player', 'Squad'], how='outer'), dataframes)
+        df_standard_rel = dataframes['standard'][['Player', 'Squad', 'Age', '90s', 'Gls', 'Ast']]
+        df_shooting_rel = dataframes['shooting'][['Player', 'Squad', 'Sh', 'SoT']]
+        df_passing_rel = dataframes['passing'][['Player', 'Squad', 'Total_Att']]
+        df_misc_rel = dataframes['misc'][['Player', 'Squad', 'Fls', 'Fld']]
         
-        # Preimenovanje kolone za pasove
-        if 'Total_Att' in df_final.columns:
-            df_final.rename(columns={'Total_Att': 'Att'}, inplace=True)
-
+        dfs_to_merge = [df_standard_rel, df_shooting_rel, df_passing_rel, df_misc_rel]
+        df_final = reduce(lambda left, right: pd.merge(left, right, on=['Player', 'Squad'], how='outer'), dfs_to_merge)
+        
+        df_final.rename(columns={'Total_Att': 'Att'}, inplace=True)
         print("Tabele uspešno spojene.")
 
         # Čišćenje i proračun
