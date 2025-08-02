@@ -28,7 +28,7 @@ CACHE_FILE = 'fbref_stats.json'
 def fetch_and_save_stats():
     """
     Preuzima sveže podatke sa fbref.com koristeći Selenium i čuva ih u JSON fajl.
-    Spaja 'Standard', 'Shooting', i 'Miscellaneous' statistike.
+    Spaja 'Standard', 'Shooting', 'Passing' i 'Miscellaneous' statistike.
     """
     print("Pokušavam da preuzmem sveže podatke sa fbref.com pomoću Selenium-a...")
     
@@ -48,6 +48,7 @@ def fetch_and_save_stats():
         urls_to_scrape = {
             "standard": "https://fbref.com/en/comps/Big5/stats/players/Big-5-European-Leagues-Stats",
             "shooting": "https://fbref.com/en/comps/Big5/shooting/players/Big-5-European-Leagues-Stats",
+            "passing": "https://fbref.com/en/comps/Big5/passing/players/Big-5-European-Leagues-Stats",
             "misc": "https://fbref.com/en/comps/Big5/misc/players/Big-5-European-Leagues-Stats"
         }
         
@@ -88,8 +89,13 @@ def fetch_and_save_stats():
             df = df_list[0]
             
             if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.droplevel(0)
-            
+                # Robustnije čišćenje zaglavlja
+                new_cols = []
+                for col in df.columns:
+                    # Uzimamo drugi nivo zaglavlja kao primarni
+                    new_cols.append(col[1])
+                df.columns = new_cols
+
             if 'Player' in df.columns:
                 df = df[df['Player'] != 'Player'].reset_index(drop=True)
             
@@ -106,38 +112,23 @@ def fetch_and_save_stats():
                 raise Exception(f"DataFrame za '{key}' je None.")
             time.sleep(2)
 
-        # --- AŽURIRANA I POUZDANIJA LOGIKA SPAJANJA ---
+        # Spajanje tabela
         print("\nSpajam preuzete tabele...")
-        # Počinjemo sa 'standard' tabelom kao osnovom
-        combined_df = dataframes['standard']
-
-        # Spajamo 'shooting' tabelu
-        df_shooting_rel = dataframes['shooting'].drop_duplicates(subset=['Player', 'Squad'])
-        combined_df = pd.merge(
-            combined_df, 
-            df_shooting_rel, 
-            on=['Player', 'Squad'], 
-            how='left',
-            suffixes=('', '_shooting')
-        )
-
-        # Spajamo 'misc' tabelu
-        df_misc_rel = dataframes['misc'].drop_duplicates(subset=['Player', 'Squad'])
-        combined_df = pd.merge(
-            combined_df,
-            df_misc_rel,
-            on=['Player', 'Squad'],
-            how='left',
-            suffixes=('', '_misc')
-        )
+        df_standard_rel = dataframes['standard'][['Player', 'Squad', 'Age', '90s', 'Gls', 'Ast']]
+        df_shooting_rel = dataframes['shooting'][['Player', 'Squad', 'Sh', 'SoT']]
+        df_passing_rel = dataframes['passing'][['Player', 'Squad', 'Att']] # 'Att' je pod 'Total'
+        df_misc_rel = dataframes['misc'][['Player', 'Squad', 'Fls', 'Fld']]
+        
+        # Spajamo sve na 'standard' tabelu
+        combined_df = pd.merge(df_standard_rel, df_shooting_rel, on=['Player', 'Squad'], how='left')
+        combined_df = pd.merge(combined_df, df_passing_rel, on=['Player', 'Squad'], how='left')
+        combined_df = pd.merge(combined_df, df_misc_rel, on=['Player', 'Squad'], how='left')
+        
+        combined_df = combined_df.loc[:, ~combined_df.columns.duplicated()]
         print("Tabele uspešno spojene.")
 
-        # Čišćenje dupliranih kolona nakon spajanja
-        combined_df = combined_df.loc[:, ~combined_df.columns.str.endswith(('_shooting', '_misc'))]
-        combined_df = combined_df.loc[:, ~combined_df.columns.duplicated()]
-
         # Čišćenje i proračun
-        numeric_cols = ['90s', 'Gls', 'Ast', 'Sh', 'SoT', 'Fls']
+        numeric_cols = ['90s', 'Gls', 'Ast', 'Sh', 'SoT', 'Att', 'Fls', 'Fld']
         for col in numeric_cols:
             if col in combined_df.columns:
                 combined_df[col] = pd.to_numeric(combined_df[col], errors='coerce')
@@ -149,7 +140,9 @@ def fetch_and_save_stats():
         combined_df['Ast_90'] = (combined_df['Ast'] / combined_df['90s']).round(2)
         combined_df['Sh_90'] = (combined_df['Sh'] / combined_df['90s']).round(2)
         combined_df['SoT_90'] = (combined_df['SoT'] / combined_df['90s']).round(2)
+        combined_df['Pass_Att_90'] = (combined_df['Att'] / combined_df['90s']).round(2)
         combined_df['Fls_90'] = (combined_df['Fls'] / combined_df['90s']).round(2)
+        combined_df['Fld_90'] = (combined_df['Fld'] / combined_df['90s']).round(2)
 
         player_data = combined_df.to_dict('records')
 
