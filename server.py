@@ -4,6 +4,7 @@ import time
 import os
 import json
 from datetime import datetime, timedelta
+from functools import reduce
 
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -24,6 +25,11 @@ CORS(app)
 # Naziv fajla za keširanje
 CACHE_FILE = 'fbref_stats.json'
 
+# --- AŽURIRANO: Dodata je osnovna ruta za proveru statusa ---
+@app.route('/')
+def index():
+    return jsonify({"status": "Odds Generator API is running successfully."})
+
 # --- FUNKCIJA ZA PREUZIMANJE I OBRADU PODATAKA POMOĆU SELENIUM-A ---
 def fetch_and_save_stats():
     """
@@ -34,6 +40,8 @@ def fetch_and_save_stats():
     
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-gpu')
     options.add_argument('--window-size=1920,1080')
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
@@ -52,10 +60,10 @@ def fetch_and_save_stats():
             "misc": "https://fbref.com/en/comps/Big5/misc/players/Big-5-European-Leagues-Stats"
         }
         
-        dataframes = {}
+        dataframes = []
 
         def parse_table(driver, table_container_id):
-            wait_time = 20
+            wait_time = 30 # Povećano vreme čekanja za svaki slučaj
             print(f"Čekam na kontejner tabele: '{table_container_id}'...")
             table_container = WebDriverWait(driver, wait_time).until(
                 EC.presence_of_element_located((By.ID, table_container_id))
@@ -89,13 +97,8 @@ def fetch_and_save_stats():
             df = df_list[0]
             
             if isinstance(df.columns, pd.MultiIndex):
-                # Robustnije čišćenje zaglavlja
-                new_cols = []
-                for col in df.columns:
-                    # Uzimamo drugi nivo zaglavlja kao primarni
-                    new_cols.append(col[1])
-                df.columns = new_cols
-
+                df.columns = df.columns.droplevel(0)
+            
             if 'Player' in df.columns:
                 df = df[df['Player'] != 'Player'].reset_index(drop=True)
             
@@ -106,45 +109,54 @@ def fetch_and_save_stats():
             driver.get(url)
             df = parse_table(driver, f'div_stats_{key}')
             if df is not None:
-                dataframes[key] = df
-                print(f"Tabela '{key}' uspešno preuzeta.")
+                # Biramo samo relevantne kolone ODMAH
+                if key == 'standard':
+                    dataframes.append(df[['Player', 'Squad', 'Age', '90s', 'Gls', 'Ast']])
+                elif key == 'shooting':
+                    dataframes.append(df[['Player', 'Squad', 'Sh', 'SoT']])
+                elif key == 'passing':
+                    # Kolona 'Att' je pod duplim zaglavljem 'Total'
+                    df_passing_rel = df.copy()
+                    # Robustan način da se pristupi kolonama
+                    if isinstance(df_passing_rel.columns, pd.MultiIndex):
+                        df_passing_rel.columns = ['_'.join(col).strip() for col in df_passing_rel.columns.values]
+                    dataframes.append(df_passing_rel[['Player', 'Squad', 'Total_Att']])
+                elif key == 'misc':
+                    dataframes.append(df[['Player', 'Squad', 'Fls', 'Fld']])
+                print(f"Tabela '{key}' uspešno preuzeta i obrađena.")
             else:
                 raise Exception(f"DataFrame za '{key}' je None.")
-            time.sleep(2)
+            time.sleep(3)
 
-        # Spajanje tabela
+        # --- AŽURIRANA I NAJPOUZDANIJA LOGIKA SPAJANJA ---
         print("\nSpajam preuzete tabele...")
-        df_standard_rel = dataframes['standard'][['Player', 'Squad', 'Age', '90s', 'Gls', 'Ast']]
-        df_shooting_rel = dataframes['shooting'][['Player', 'Squad', 'Sh', 'SoT']]
-        df_passing_rel = dataframes['passing'][['Player', 'Squad', 'Att']] # 'Att' je pod 'Total'
-        df_misc_rel = dataframes['misc'][['Player', 'Squad', 'Fls', 'Fld']]
+        # Koristimo 'reduce' da bismo iterativno spojili sve tabele
+        df_final = reduce(lambda left, right: pd.merge(left, right, on=['Player', 'Squad'], how='outer'), dataframes)
         
-        # Spajamo sve na 'standard' tabelu
-        combined_df = pd.merge(df_standard_rel, df_shooting_rel, on=['Player', 'Squad'], how='left')
-        combined_df = pd.merge(combined_df, df_passing_rel, on=['Player', 'Squad'], how='left')
-        combined_df = pd.merge(combined_df, df_misc_rel, on=['Player', 'Squad'], how='left')
-        
-        combined_df = combined_df.loc[:, ~combined_df.columns.duplicated()]
+        # Preimenovanje kolone za pasove
+        if 'Total_Att' in df_final.columns:
+            df_final.rename(columns={'Total_Att': 'Att'}, inplace=True)
+
         print("Tabele uspešno spojene.")
 
         # Čišćenje i proračun
         numeric_cols = ['90s', 'Gls', 'Ast', 'Sh', 'SoT', 'Att', 'Fls', 'Fld']
         for col in numeric_cols:
-            if col in combined_df.columns:
-                combined_df[col] = pd.to_numeric(combined_df[col], errors='coerce')
+            if col in df_final.columns:
+                df_final[col] = pd.to_numeric(df_final[col], errors='coerce')
         
-        combined_df.fillna(0, inplace=True)
-        combined_df = combined_df[combined_df['90s'] > 0].copy()
+        df_final.fillna(0, inplace=True)
+        df_final = df_final[df_final['90s'] > 0].copy()
 
-        combined_df['Gls_90'] = (combined_df['Gls'] / combined_df['90s']).round(2)
-        combined_df['Ast_90'] = (combined_df['Ast'] / combined_df['90s']).round(2)
-        combined_df['Sh_90'] = (combined_df['Sh'] / combined_df['90s']).round(2)
-        combined_df['SoT_90'] = (combined_df['SoT'] / combined_df['90s']).round(2)
-        combined_df['Pass_Att_90'] = (combined_df['Att'] / combined_df['90s']).round(2)
-        combined_df['Fls_90'] = (combined_df['Fls'] / combined_df['90s']).round(2)
-        combined_df['Fld_90'] = (combined_df['Fld'] / combined_df['90s']).round(2)
+        df_final['Gls_90'] = (df_final['Gls'] / df_final['90s']).round(2)
+        df_final['Ast_90'] = (df_final['Ast'] / df_final['90s']).round(2)
+        df_final['Sh_90'] = (df_final['Sh'] / df_final['90s']).round(2)
+        df_final['SoT_90'] = (df_final['SoT'] / df_final['90s']).round(2)
+        df_final['Pass_Att_90'] = (df_final['Att'] / df_final['90s']).round(2)
+        df_final['Fls_90'] = (df_final['Fls'] / df_final['90s']).round(2)
+        df_final['Fld_90'] = (df_final['Fld'] / df_final['90s']).round(2)
 
-        player_data = combined_df.to_dict('records')
+        player_data = df_final.to_dict('records')
 
         with open(CACHE_FILE, 'w', encoding='utf-8') as f:
             json.dump(player_data, f, ensure_ascii=False, indent=4)
