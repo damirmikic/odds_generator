@@ -759,13 +759,6 @@
             addPlayer();
             previewSection.classList.add('hidden');
             teamFilter.value = '';
-            
-            competitionSelect.innerHTML = '';
-            competitionSelect.disabled = true;
-            eventSelect.innerHTML = '';
-            eventSelect.disabled = true;
-            teamSelect.innerHTML = '';
-            teamSelect.disabled = true;
         };
 
         const populateTeamFilter = (teams) => {
@@ -820,11 +813,24 @@
                 }
                 const data = await response.json();
                 
-                apiEvents = data.competitions.flatMap(comp => comp.events.map(event => ({...event, competitionName: comp.name, competitionKey: comp.key })));
+                // === CHANGED BLOCK: Filter competitions and events to only include those with goalscorer markets ===
+                const competitionsWithGoalscorerMarket = data.competitions.map(comp => {
+                    // Filter events within this competition that have the anytime_goalscorer market
+                    const relevantEvents = comp.events.filter(event => event.markets && event.markets['soccer.anytime_goalscorer']);
+                    return { ...comp, events: relevantEvents };
+                }).filter(comp => comp.events.length > 0); // Keep only competitions that still have events after filtering
 
-                populateCompetitionSelect(data.competitions);
-                apiStatus.textContent = `Uspešno učitano ${apiEvents.length} mečeva. Izaberite takmičenje.`;
-                competitionSelect.disabled = false;
+                apiEvents = competitionsWithGoalscorerMarket.flatMap(comp => comp.events.map(event => ({...event, competitionName: comp.name, competitionKey: comp.key })));
+                // === END OF CHANGED BLOCK ===
+
+                if (apiEvents.length === 0) {
+                     apiStatus.textContent = 'Nije pronađen nijedan meč sa kvotama za strelce.';
+                } else {
+                     populateCompetitionSelect(competitionsWithGoalscorerMarket);
+                     apiStatus.textContent = `Uspešno učitano ${apiEvents.length} mečeva sa ponudom za strelce.`;
+                     competitionSelect.disabled = false;
+                }
+
             } catch (error) {
                 apiStatus.textContent = `Greška: ${error.message}`;
                 console.error("API Fetch Error:", error);
@@ -852,6 +858,10 @@
             eventSelect.innerHTML = '<option value="">-- Izaberi Meč --</option>';
             teamSelect.innerHTML = '';
             teamSelect.disabled = true;
+            if (!competitionKey) {
+                eventSelect.disabled = true;
+                return;
+            }
             const eventsInCompetition = apiEvents.filter(e => e.competitionKey === competitionKey);
             eventsInCompetition.forEach(event => {
                 const option = document.createElement('option');
@@ -955,9 +965,9 @@
             if (odd) {
                 $('#team-win-odd').value = odd;
             }
-            if (e.target.value === 'all') {
+            if (e.target.value === 'all' || !selectedOption.textContent) {
                 const eventSelectOption = eventSelect.options[eventSelect.selectedIndex];
-                $('#match-name').value = eventSelectOption.textContent;
+                $('#match-name').value = eventSelectOption.textContent || '';
             } else {
                 $('#match-name').value = selectedOption.textContent;
             }
