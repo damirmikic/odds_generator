@@ -1,11 +1,5 @@
 # netlify.toml
 
 [build]
-  # Tell Netlify that your site's content is inside this folder.
-  base = "GENERATOR KVOTA API"
-  
-  # The location of your serverless functions, relative to the 'base' directory.
+  # The 'base' line has been removed.
   functions = "netlify/functions"
-
-# For a simple static site like yours, you don't need to specify a 'publish'
-# directory or a 'command', as Netlify handles it automatically.
