@@ -175,7 +175,16 @@
          .action-btn.success:focus-visible {
             box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.4);
         }
-
+        .action-btn.add-player {
+            background-image: linear-gradient(to right, #10b981, #059669);
+            color: white;
+        }
+        .action-btn.add-player:hover {
+            opacity: 0.9;
+        }
+        .action-btn.add-player:focus-visible {
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.4);
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-slate-800">
@@ -218,6 +227,16 @@
                             <label for="team-select">Tim</label>
                             <select id="team-select" disabled></select>
                         </div>
+                        <div class="input-group md:col-span-2">
+                            <label for="player-select">Igrač iz API-ja</label>
+                            <select id="player-select" disabled></select>
+                        </div>
+                        <div class="md:col-span-1 flex items-end">
+                           <button type="button" id="add-api-player-btn" class="w-full action-btn add-player" disabled>
+                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-plus"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8"/><line x1="22" x2="16" y1="11"/></svg>
+                               <span>Dodaj Igrača</span>
+                           </button>
+                       </div>
                     </div>
                 </section>
 
@@ -298,6 +317,8 @@
         const competitionSelect = $('#competition-select');
         const eventSelect = $('#event-select');
         const teamSelect = $('#team-select');
+        const playerSelect = $('#player-select');
+        const addApiPlayerBtn = $('#add-api-player-btn');
         
         // Global State
         let playerCounter = 0;
@@ -353,6 +374,18 @@
             return namePart.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         };
 
+
+        const populatePlayerSelect = (players) => {
+           playerSelect.innerHTML = '<option value="">Izaberi igrača</option>';
+           players.forEach(player => {
+               const option = document.createElement('option');
+               option.value = player.name;
+               option.textContent = player.name;
+               playerSelect.appendChild(option);
+           });
+           playerSelect.disabled = false;
+           addApiPlayerBtn.disabled = true;
+       };
 
         // --- Player Card Management ---
         const createShotLineHTML = (threshold, odd, isCustom = false) => {
@@ -452,6 +485,7 @@
                     </button>
                 </div>
                 `;
+             playersContainer.appendChild(playerCard);
              return playerCard;
         };
 
@@ -500,77 +534,35 @@
                 suggestionsContainer.classList.add('hidden');
                 return;
             }
-            const suggestions = sourceData.filter(p => p.Player.toLowerCase().includes(value)).slice(0, 10);
-            if (suggestions.length === 0) {
-                suggestionsContainer.classList.add('hidden');
-                return;
-            }
-            suggestions.forEach(player => {
-                const div = document.createElement('div');
-                div.innerHTML = player.Player.replace(new RegExp(value, 'gi'), match => `<span class="highlight">${match}</span>`);
-                div.onclick = () => {
-                     inputElement.value = player.Player;
-                     suggestionsContainer.classList.add('hidden');
-                     selectPlayerFromDb(inputElement, player);
-                }
-                suggestionsContainer.appendChild(div);
-            });
-            suggestionsContainer.classList.remove('hidden');
-        };
-        
-        const calculateOddForLine = (button) => {
-             const line = button.closest('.shot-line');
-             const card = button.closest('.player-card');
-             if (!line || !card) return;
-
-             const k = parseInt(line.querySelector('.shots-threshold').value, 10);
-             const oddInput = line.querySelector('.shot-odd-input');
-             const statInput = card.querySelector('.player-stat[data-stat="Sh_90"]');
-             const lambda = parseFloat(statInput.value) || 0;
-             const margin = parseFloat($('#bookmaker-margin').value) || 0;
-
-             if (isNaN(k) || k < 1 || lambda <= 0) {
-                 oddInput.value = '';
-                 return;
-             }
-             const prob_less_than_k = poissonCDF(lambda, k - 1);
-             const probability = 1 - prob_less_than_k;
-             let rawOdd = probToOdd(probability);
-             let finalOdd = applyMarginToOdd(rawOdd, margin);
-             oddInput.value = formatOdd(finalOdd);
-        };
-
-        const calculateSingleBaseOdd = (button) => {
-            const { oddType, statType } = button.dataset;
-            const card = button.closest('.player-card');
-            if (!card) return;
-            const statInput = card.querySelector(`.player-stat[data-stat="${statType}"]`);
-            const oddInput = card.querySelector(`.player-base-odd[data-odd-type="${oddType}"]`);
-            const statValue = parseFloat(statInput.value) || 0;
-            const margin = parseFloat($('#bookmaker-margin').value) || 0;
-
-            if (oddType === 'pasovi-lambda') {
-                oddInput.value = statValue.toFixed(2);
+            const filteredPlayers = sourceData.filter(p => p.Player.toLowerCase().includes(value)).slice(0, 5);
+            if (filteredPlayers.length > 0) {
+                suggestionsContainer.classList.remove('hidden');
+                filteredPlayers.forEach(player => {
+                    const div = document.createElement('div');
+                    div.innerHTML = player.Player.replace(new RegExp(value, 'gi'), (match) => `<span class="highlight">${match}</span>`);
+                    on(div, 'click', () => {
+                        inputElement.value = player.Player;
+                        suggestionsContainer.classList.add('hidden');
+                        selectPlayerFromDb(inputElement, player);
+                    });
+                    suggestionsContainer.appendChild(div);
+                });
             } else {
-                const probability = 1 - poissonProbability(statValue, 0);
-                let rawOdd = probToOdd(probability);
-                let finalOdd = applyMarginToOdd(rawOdd, margin);
-                oddInput.value = formatOdd(finalOdd);
+                suggestionsContainer.classList.add('hidden');
             }
         };
 
-        // --- Main Calculation Logic ---
-        const calculateOdds = () => {
-            let allResults = [];
+        const calculateAllOdds = () => {
             const playerCards = document.querySelectorAll('.player-card');
-            const margin = parseFloat($('#bookmaker-margin').value) || 0;
             const teamWinOdd = parseFloat($('#team-win-odd').value) || 0;
-            const correlationFactor = parseFloat($('#correlation-factor').value) || 1.0;
+            const correlationFactor = parseFloat($('#correlation-factor').value) || 1.3;
+            const margin = parseFloat($('#bookmaker-margin').value) || 0;
+            let allResults = [];
 
-            const createBet = (playerName, m2, m3, o, amf = true) => {
-                const finalOddValue = amf ? applyMarginToOdd(o, margin) : o;
-                
-                if (finalOddValue === null || finalOddValue <= 1) return;
+            const createBet = (playerName, m2, m3, odd, isCombo) => {
+                if (!odd || odd <= 1) return;
+                let finalOddValue = isCombo ? odd : applyMarginToOdd(odd, margin);
+                if (!finalOddValue) return;
 
                 const isShotsMarket = m2.includes('suteva');
                 if (isShotsMarket && finalOddValue > 7) return;
@@ -704,338 +696,276 @@
             const dateVal = $('#kickoff-date').value;
             const timeVal = $('#kickoff-time').value;
             let date, time;
-
             if (dateVal) {
-                const [y, m, d] = dateVal.split('-');
-                date = `${d}.${m}.${y}`;
+                const d = new Date(dateVal);
+                date = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
             } else {
-                const now = new Date();
-                date = `${now.getDate()}.${now.getMonth() + 1}.${now.getFullYear()}`;
+                const today = new Date();
+                date = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
             }
-            time = timeVal || get24hTime(new Date());
+            time = timeVal || get24hTime();
 
-            const playerData = {};
+            let currentSifra = 1001;
+            const getNextSifra = () => currentSifra++;
+
             visibleRows.forEach(row => {
                 const cells = row.querySelectorAll('td');
-                const playerName = cells[0].textContent;
-                if (!playerData[playerName]) {
-                    playerData[playerName] = [];
-                }
-                playerData[playerName].push({
-                    market2: cells[1].textContent,
-                    market3: cells[2].textContent,
-                    odd: cells[3].textContent,
-                });
+                const player = cells[0].textContent;
+                const market2 = cells[1].textContent;
+                const market3 = cells[2].textContent;
+                const odd = cells[3].textContent;
+                const sifra = getNextSifra();
+                const domacin = `${player} ${market2}`;
+                const gost = market3;
+                const csvRow = [date, time, sifra, domacin, gost, odd, '', '', '', '', '', '', ''].join(',');
+                csvContent += csvRow + '\r\n';
             });
 
-            for (const playerName in playerData) {
-                const leagueRow = [`LEAGUE_NAME:${playerName}`, '', '', '', '', '', '', '', '', '', '', '', ''].join(',');
-                csvContent += leagueRow + '\r\n';
-                
-                playerData[playerName].forEach(item => {
-                    const rowData = [ date, time, '', item.market2, item.market3, item.odd, '', '', '', '', '', '', '' ];
-                    csvContent += rowData.join(',') + '\r\n';
-                });
-                csvContent += '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `${matchName.replace(/ /g,"_")}_odds.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
-            
-            const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${matchName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_odds.csv`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         };
-        
-        // --- Form Reset & Initial Load ---
-        const resetForm = () => {
+
+        // --- Event Listeners ---
+        on(generateBtn, 'click', () => {
+            const data = calculateAllOdds();
+            updatePreviewTable(data);
+        });
+        on(downloadCsvBtn, 'click', downloadCSV);
+        on(addPlayerBtn, 'click', () => addPlayer());
+        on(resetBtn, 'click', () => {
             $('#odds-form').reset();
-            const now = new Date();
-            $('#kickoff-date').value = now.toISOString().split('T')[0];
-            $('#kickoff-time').value = get24hTime(now);
             playersContainer.innerHTML = '';
             playerCounter = 0;
             addPlayer();
             previewSection.classList.add('hidden');
-            teamFilter.value = '';
-        };
+            previewTableBody.innerHTML = '';
+        });
+        on(document, 'click', (e) => {
+            if (e.target.classList.contains('remove-player-btn')) {
+                e.target.closest('.player-card').remove();
+            }
+            if (e.target.classList.contains('remove-preview-row')) {
+                e.target.closest('tr').remove();
+            }
+            if (e.target.classList.contains('add-shot-line-btn')) {
+                const card = e.target.closest('.player-card');
+                const container = card.querySelector('.shots-lines-container');
+                container.insertAdjacentHTML('beforeend', createShotLineHTML('', '', true));
+            }
+            if (e.target.classList.contains('remove-shot-line-btn')) {
+                e.target.closest('.shot-line').remove();
+            }
+            if (e.target.classList.contains('calc-btn')) {
+                const card = e.target.closest('.player-card');
+                const oddType = e.target.dataset.oddType;
+                const statType = e.target.dataset.statType;
+                const statValue = parseFloat(card.querySelector(`[data-stat="${statType}"]`).value) || 0;
+                const margin = parseFloat($('#bookmaker-margin').value) || 0;
+                const outputInput = e.target.previousElementSibling;
 
-        const populateTeamFilter = (teams) => {
-            teamFilter.innerHTML = '<option value="">-- Ručni filter --</option>';
-            teams.forEach(team => {
-                const option = document.createElement('option');
-                option.value = team;
-                option.textContent = team;
-                teamFilter.appendChild(option);
-            });
-        };
+                if (statValue > 0) {
+                    if (oddType.includes('lambda')) {
+                        outputInput.value = statValue.toFixed(2);
+                    } else {
+                        const prob = 1 - poissonProbability(statValue, 0);
+                        const rawOdd = probToOdd(prob);
+                        outputInput.value = formatOdd(applyMarginToOdd(rawOdd, margin));
+                    }
+                }
+            }
+             if (e.target.classList.contains('calc-shot-btn')) {
+                const card = e.target.closest('.player-card');
+                const line = e.target.closest('.shot-line');
+                const threshold = parseInt(line.querySelector('.shots-threshold').value);
+                const statValue = parseFloat(card.querySelector('[data-stat="Sh_90"]').value) || 0;
+                const margin = parseFloat($('#bookmaker-margin').value) || 0;
+                const outputInput = e.target.previousElementSibling;
 
-        const fetchFbrefData = async () => {
-            const indicator = $('#status-indicator');
-            const statusText = $('#status-text');
+                if (statValue > 0 && threshold > 0) {
+                    const prob = 1 - poissonCDF(statValue, threshold - 1);
+                    const rawOdd = probToOdd(prob);
+                    outputInput.value = formatOdd(applyMarginToOdd(rawOdd, margin));
+                }
+            }
+        });
+        on(document, 'input', (e) => {
+            if (e.target.classList.contains('player-name-search')) {
+                showAutocomplete(e.target);
+            }
+            if (e.target.classList.contains('player-stat') && e.target.dataset.stat === 'Sh_90') {
+                populateStandardShotLines(e.target.closest('.player-card'));
+            }
+        });
+        on(document, 'focusout', (e) => {
+            if (e.target.classList.contains('player-name-search')) {
+                setTimeout(() => {
+                    if (!e.target.matches(':focus')) {
+                         e.target.nextElementSibling.classList.add('hidden');
+                    }
+                }, 200);
+            }
+        });
+
+        // --- Initial Load ---
+        const loadFbrefDb = async () => {
             try {
-                // IMPORTANT: Make sure this file exists in your project directory
-                const response = await fetch('/player_data/merged_player_stats.json'); 
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                allFbrefStats = await response.json();
-                indicator.classList.replace('bg-red-500', 'bg-green-500');
-                indicator.classList.replace('pulse-red', 'pulse-green');
-                statusText.textContent = 'Lokalna baza učitana';
-                statusText.className = 'text-green-700';
-                indicator.title = `Uspešno učitano ${allFbrefStats.length} igrača.`;
+                const res = await fetch('/player_data/merged_player_stats.json');
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                allFbrefStats = await res.json();
+                
                 const teams = [...new Set(allFbrefStats.map(p => p.Squad))].sort();
-                populateTeamFilter(teams);
+                teamFilter.innerHTML = '<option value="">Svi Timovi (Lokalna Baza)</option>';
+                teams.forEach(team => teamFilter.innerHTML += `<option value="${team}">${team}</option>`);
+                
+                $('#status-indicator').classList.remove('bg-red-500', 'pulse-red');
+                $('#status-indicator').classList.add('bg-green-500', 'pulse-green');
+                $('#status-text').textContent = 'Baza je spremna';
             } catch (error) {
-                console.error("Greška pri učitavanju lokalnih podataka:", error);
-                indicator.title = "Greška: Nije moguće učitati 'merged_player_stats.json'.";
-                statusText.textContent = 'Greška učitavanja baze';
-                statusText.className = 'text-red-600';
-                alert("Nije moguće učitati lokalnu bazu podataka. Proverite da li fajl 'player_data/merged_player_stats.json' postoji.");
+                console.error("Failed to load FBREF DB:", error);
+                $('#status-text').textContent = 'Greška u bazi';
+                $('#status-text').classList.add('text-red-600');
             }
         };
         
-        // --- API Functions ---
-        const fetchApiEvents = async () => {
-            apiBtnText.textContent = 'Učitavam...';
+        on(fetchApiBtn, 'click', async () => {
+            apiBtnText.textContent = 'Učitavanje...';
             fetchApiBtn.disabled = true;
-            apiStatus.textContent = 'Preuzimanje podataka sa API-ja...';
-            
-            // The API call is now made to our secure Netlify Function
-            const url = `/.netlify/functions/fetch-events`;
+            apiStatus.textContent = '';
 
             try {
-                // We no longer need to pass the API key in the headers from the frontend
-                const response = await fetch(url);
+                const response = await fetch('/.netlify/functions/fetch-events');
                 if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(`API greška: ${errData.error || response.statusText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Nepoznata greška sa API-ja');
                 }
-                const data = await response.json();
+                apiEvents = await response.json();
                 
-                // === CHANGED BLOCK: Filter competitions and events to only include those with goalscorer markets ===
-                const competitionsWithGoalscorerMarket = data.competitions.map(comp => {
-                    // Filter events within this competition that have the anytime_goalscorer market
-                    const relevantEvents = comp.events.filter(event => event.markets && event.markets['soccer.anytime_goalscorer']);
-                    return { ...comp, events: relevantEvents };
-                }).filter(comp => comp.events.length > 0); // Keep only competitions that still have events after filtering
-
-                apiEvents = competitionsWithGoalscorerMarket.flatMap(comp => comp.events.map(event => ({...event, competitionName: comp.name, competitionKey: comp.key })));
-                // === END OF CHANGED BLOCK ===
-
-                if (apiEvents.length === 0) {
-                     apiStatus.textContent = 'Nije pronađen nijedan meč sa kvotama za strelce.';
-                } else {
-                     populateCompetitionSelect(competitionsWithGoalscorerMarket);
-                     apiStatus.textContent = `Uspešno učitano ${apiEvents.length} mečeva sa ponudom za strelce.`;
-                     competitionSelect.disabled = false;
-                }
+                const competitions = [...new Set(apiEvents.map(e => e.competition))];
+                competitionSelect.innerHTML = '<option value="">Izaberi takmičenje</option>';
+                competitions.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c;
+                    option.textContent = c;
+                    competitionSelect.appendChild(option);
+                });
+                competitionSelect.disabled = false;
+                apiStatus.textContent = `Uspešno preuzeto ${apiEvents.length} mečeva.`;
+                apiStatus.classList.add('text-green-600');
 
             } catch (error) {
+                console.error('API Fetch Error:', error);
                 apiStatus.textContent = `Greška: ${error.message}`;
-                console.error("API Fetch Error:", error);
+                apiStatus.classList.add('text-red-600');
             } finally {
                 apiBtnText.textContent = 'Učitaj Mečeve sa API-ja';
                 fetchApiBtn.disabled = false;
             }
-        };
+        });
 
-        const populateCompetitionSelect = (competitions) => {
-            const competitionKeys = [...new Set(apiEvents.map(e => e.competitionKey))];
-            competitionSelect.innerHTML = '<option value="">-- Izaberi Takmičenje --</option>';
-            competitionKeys.forEach(key => {
-                const comp = competitions.find(c => c.key === key);
-                if (comp) {
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = comp.name;
-                    competitionSelect.appendChild(option);
-                }
-            });
-        };
-        
-        const populateEventSelect = (competitionKey) => {
-            eventSelect.innerHTML = '<option value="">-- Izaberi Meč --</option>';
-            teamSelect.innerHTML = '';
-            teamSelect.disabled = true;
-            if (!competitionKey) {
-                eventSelect.disabled = true;
-                return;
-            }
-            const eventsInCompetition = apiEvents.filter(e => e.competitionKey === competitionKey);
-            eventsInCompetition.forEach(event => {
+        on(competitionSelect, 'change', () => {
+            const selectedCompetition = competitionSelect.value;
+            const filteredEvents = apiEvents.filter(e => e.competition === selectedCompetition);
+            eventSelect.innerHTML = '<option value="">Izaberi meč</option>';
+            filteredEvents.forEach(e => {
                 const option = document.createElement('option');
-                option.value = event.id;
-                option.textContent = `${event.home.name} vs ${event.away.name}`;
+                option.value = e.id;
+                option.textContent = `${e.home_team} vs ${e.away_team}`;
                 eventSelect.appendChild(option);
             });
             eventSelect.disabled = false;
-        };
-        
-        const renderPlayersForTeam = (eventId, teamFilter) => {
-             const event = apiEvents.find(e => e.id == eventId);
-             if (!event) return;
-             
-             playersContainer.innerHTML = '';
-             playerCounter = 0;
-             const goalscorerSelections = event.markets?.['soccer.anytime_goalscorer']?.submarkets?.['period=ft']?.selections;
+            teamSelect.disabled = true;
+            playerSelect.disabled = true;
+        });
 
-             // Case 1: `players` object is populated (preferred)
-             if (event.players && Object.keys(event.players).length > 0) {
-                 for (const playerKey in event.players) {
-                     const player = event.players[playerKey];
-                     if (teamFilter !== 'all' && player.team.toLowerCase() !== teamFilter) {
-                        continue;
-                     }
-                     
-                     let goalscorerOdd = null;
-                     let selection = null;
-                     if (goalscorerSelections) {
-                         selection = goalscorerSelections.find(s => s.name === player.name);
-                         if (!selection) {
-                            selection = goalscorerSelections.find(s => s.outcome === `player=${playerKey}`);
-                         }
-                     }
-                     
-                     if (selection && selection.status === 'SELECTION_ENABLED') {
-                        goalscorerOdd = selection.price;
-                        const playerCard = addPlayer({ name: player.name, goalscorerOdd });
-                        playersContainer.appendChild(playerCard);
-                        
-                        const fbrefPlayer = allFbrefStats.find(p => p.Player.toLowerCase() === player.name.toLowerCase());
-                        if (fbrefPlayer) {
-                            const nameInput = playerCard.querySelector('.player-name-search');
-                            selectPlayerFromDb(nameInput, fbrefPlayer);
-                        }
-                     }
-                 }
-             } 
-             // Case 2: Fallback to parsing from market if `players` is empty
-             else if (goalscorerSelections) {
-                 goalscorerSelections.forEach(selection => {
-                    if (selection.status === 'SELECTION_ENABLED') {
-                        const playerName = parsePlayerNameFromOutcome(selection.outcome);
-                        const goalscorerOdd = selection.price;
-
-                        const playerCard = addPlayer({ name: playerName, goalscorerOdd });
-                        playersContainer.appendChild(playerCard);
-                        
-                        const fbrefPlayer = allFbrefStats.find(p => p.Player.toLowerCase() === playerName.toLowerCase());
-                        if (fbrefPlayer) {
-                            const nameInput = playerCard.querySelector('.player-name-search');
-                            selectPlayerFromDb(nameInput, fbrefPlayer);
-                        }
-                    }
-                 });
-             }
-        };
-
-        const populateMatchData = (eventId) => {
-            const event = apiEvents.find(e => e.id == eventId);
-            if (!event) return;
-
-            $('#match-name').value = `${event.home.name} vs ${event.away.name}`;
-            const kickoff = new Date(event.cutoffTime);
-            $('#kickoff-date').value = kickoff.toISOString().split('T')[0];
-            $('#kickoff-time').value = get24hTime(kickoff);
-
-            teamSelect.innerHTML = `<option value="all">Svi Igrači</option>`;
-            const matchOddsMarket = event.markets?.['soccer.match_odds']?.submarkets?.['period=ft']?.selections;
-            if (matchOddsMarket) {
-                const homeOdd = matchOddsMarket.find(s => s.outcome === 'home')?.price;
-                const awayOdd = matchOddsMarket.find(s => s.outcome === 'away')?.price;
-                teamSelect.innerHTML += `<option value="home" data-odd="${homeOdd || ''}">${event.home.name}</option>`;
-                teamSelect.innerHTML += `<option value="away" data-odd="${awayOdd || ''}">${event.away.name}</option>`;
-                $('#team-win-odd').value = homeOdd || '';
+        on(eventSelect, 'change', () => {
+            const selectedEvent = apiEvents.find(e => e.id === eventSelect.value);
+            if (!selectedEvent) {
+                teamSelect.innerHTML = '';
+                teamSelect.disabled = true;
+                return;
             }
-            teamSelect.disabled = false;
             
-            renderPlayersForTeam(eventId, 'all');
-        };
+            $('#match-name').value = `${selectedEvent.home_team} - ${selectedEvent.away_team}`;
+            const eventDate = new Date(selectedEvent.commence_time);
+            $('#kickoff-date').value = eventDate.toISOString().split('T')[0];
+            $('#kickoff-time').value = get24hTime(eventDate);
 
+            teamSelect.innerHTML = '<option value="">Izaberi tim</option>';
+            const homeTeamOption = document.createElement('option');
+            homeTeamOption.value = selectedEvent.home_team;
+            homeTeamOption.textContent = selectedEvent.home_team;
+            teamSelect.appendChild(homeTeamOption);
 
-        // --- Event Listeners ---
-        on(fetchApiBtn, 'click', fetchApiEvents);
-        on(competitionSelect, 'change', e => populateEventSelect(e.target.value));
-        on(eventSelect, 'change', e => populateMatchData(e.target.value));
-        on(teamSelect, 'change', e => {
-            const selectedOption = e.target.options[e.target.selectedIndex];
-            const eventId = eventSelect.value;
-            const odd = selectedOption.dataset.odd;
-            if (odd) {
-                $('#team-win-odd').value = odd;
+            const awayTeamOption = document.createElement('option');
+            awayTeamOption.value = selectedEvent.away_team;
+            awayTeamOption.textContent = selectedEvent.away_team;
+            teamSelect.appendChild(awayTeamOption);
+            
+            teamSelect.disabled = false;
+        });
+
+        on(teamSelect, 'change', () => {
+            const selectedTeamName = teamSelect.value;
+            const selectedEvent = apiEvents.find(e => e.id === eventSelect.value);
+            if (!selectedEvent || !selectedEvent.bookmakers || !selectedEvent.bookmakers.length > 0) {
+                playerSelect.innerHTML = '';
+                playerSelect.disabled = true;
+                addApiPlayerBtn.disabled = true;
+                return;
+            };
+
+            const goalscorerMarket = selectedEvent.bookmakers[0].markets.find(m => m.key === 'player_anytime_goalscorer');
+            if (!goalscorerMarket) {
+                playerSelect.innerHTML = '<option value="">Nema podataka o igračima</option>';
+                playerSelect.disabled = true;
+                addApiPlayerBtn.disabled = true;
+                return;
             }
-            if (e.target.value === 'all' || !selectedOption.textContent) {
-                const eventSelectOption = eventSelect.options[eventSelect.selectedIndex];
-                $('#match-name').value = eventSelectOption.textContent || '';
+
+            const homeTeamPlayers = goalscorerMarket.outcomes
+                .filter(o => o.name.startsWith(selectedEvent.home_team))
+                .map(o => ({ name: parsePlayerNameFromOutcome(o.name) }));
+            
+            const awayTeamPlayers = goalscorerMarket.outcomes
+                .filter(o => o.name.startsWith(selectedEvent.away_team))
+                .map(o => ({ name: parsePlayerNameFromOutcome(o.name) }));
+
+            if (selectedTeamName === selectedEvent.home_team) {
+                populatePlayerSelect(homeTeamPlayers);
+            } else if (selectedTeamName === selectedEvent.away_team) {
+                populatePlayerSelect(awayTeamPlayers);
             } else {
-                $('#match-name').value = selectedOption.textContent;
+                playerSelect.innerHTML = '';
+                playerSelect.disabled = true;
+                addApiPlayerBtn.disabled = true;
             }
-            renderPlayersForTeam(eventId, e.target.value);
         });
 
-        on(generateBtn, 'click', (e) => { 
-            e.preventDefault(); 
-            const btnText = $('#generate-btn-text');
-            generateBtn.disabled = true;
-            btnText.textContent = 'Računam...';
-            setTimeout(() => {
-                const generatedData = calculateOdds(); 
-                updatePreviewTable(generatedData);
-                generateBtn.disabled = false;
-                btnText.textContent = 'Generiši Kvote';
-            }, 50);
+        on(playerSelect, 'change', () => {
+            addApiPlayerBtn.disabled = !playerSelect.value;
         });
-        on(downloadCsvBtn, 'click', downloadCSV);
-        on(addPlayerBtn, 'click', () => playersContainer.appendChild(addPlayer()));
-        on(resetBtn, 'click', resetForm);
-        
-        on(playersContainer, 'input', e => { 
-            if (e.target.classList.contains('player-name-search')) showAutocomplete(e.target);
-            if (e.target.matches('.player-stat[data-stat="Sh_90"]')) {
-                const card = e.target.closest('.player-card');
-                populateStandardShotLines(card);
-            }
-        });
-        on(document, 'click', e => {
-             if (!e.target.closest('.player-name-search')) {
-                document.querySelectorAll('.autocomplete-suggestions').forEach(s => s.classList.add('hidden'));
-            }
-        });
-        on(playersContainer, 'click', e => {
-            const target = e.target.closest('button');
-            if (!target) return;
 
-            if (target.classList.contains('remove-player-btn')) {
-                target.closest('.player-card')?.remove();
-            } else if (target.classList.contains('add-shot-line-btn')) {
-                const container = target.previousElementSibling;
-                container.insertAdjacentHTML('beforeend', createShotLineHTML('', '', true));
-            } else if (target.classList.contains('calc-shot-btn')) {
-                calculateOddForLine(target);
-            } else if (target.classList.contains('remove-shot-line-btn')) {
-                target.closest('.shot-line')?.remove();
-            } else if (target.classList.contains('calc-btn')) {
-                calculateSingleBaseOdd(target);
-            }
+        on(addApiPlayerBtn, 'click', () => {
+            const playerName = playerSelect.value;
+            if (!playerName) return;
+
+            const playerStats = allFbrefStats.find(p => p.Player === playerName);
+            addPlayer({ name: playerName, ...playerStats });
         });
-        on(previewTableBody, 'click', e => {
-            const target = e.target.closest('.remove-preview-row');
-            if (target) {
-                target.closest('tr').remove();
-            }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFbrefDb();
+            addPlayer();
         });
-        
-        on(teamFilter, 'change', () => {
-            const selectedTeam = teamFilter.value;
-            if (selectedTeam) $('#match-name').value = selectedTeam;
-        });
-        
-        // --- Initial Setup ---
-        window.onload = () => {
-            resetForm();
-            fetchFbrefData();
-        };
     </script>
 </body>
 </html>
