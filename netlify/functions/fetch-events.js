@@ -13,11 +13,13 @@ exports.handler = async (event, context) => {
   const from = Math.floor(Date.now() / 1000);
   const to = from + (48 * 3600); // 48 hours from now
   const API_URL = `https://sports-api.cloudbet.com/pub/v2/odds/events?sport=soccer&from=${from}&to=${to}&live=false&markets=soccer.anytime_goalscorer&markets=soccer.match_odds&players=true&limit=1000`;
-
-  try {
-    const response = await fetch(API_URL, {
-      headers: { 'X-API-Key': API_KEY }
-    });
+  
+    console.log('Fetching API URL:', API_URL); // Log the URL for debugging
+  
+    try {
+      const response = await fetch(API_URL, {
+        headers: { 'X-API-Key': API_KEY }
+      });
 
     if (!response.ok) {
       // Forward the API's error status and message if possible
