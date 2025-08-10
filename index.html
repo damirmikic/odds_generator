@@ -847,9 +847,10 @@
                     const errorData = await response.json();
                     throw new Error(errorData.error || 'Nepoznata greška sa API-ja');
                 }
-                apiEvents = await response.json();
+                const data = await response.json();
+                apiEvents = data.events; // Correctly access the events array
                 
-                const competitions = [...new Set(apiEvents.map(e => e.competition))];
+                const competitions = [...new Set(apiEvents.map(e => e.competition.name))];
                 competitionSelect.innerHTML = '<option value="">Izaberi takmičenje</option>';
                 competitions.forEach(c => {
                     const option = document.createElement('option');
@@ -873,7 +874,7 @@
 
         on(competitionSelect, 'change', () => {
             const selectedCompetition = competitionSelect.value;
-            const filteredEvents = apiEvents.filter(e => e.competition === selectedCompetition);
+            const filteredEvents = apiEvents.filter(e => e.competition.name === selectedCompetition);
             eventSelect.innerHTML = '<option value="">Izaberi meč</option>';
             filteredEvents.forEach(e => {
                 const option = document.createElement('option');
