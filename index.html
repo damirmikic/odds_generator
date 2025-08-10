@@ -453,6 +453,13 @@
                                 <label>Kvota: Iznuđeni faulovi 1+</label>
                                 <div class="input-wrapper"><input type="number" class="player-base-odd" data-odd-type="faulovi-iznudjeni-1" step="0.01"><button type="button" class="calc-btn" data-odd-type="faulovi-iznudjeni-1" data-stat-type="Fld_90" title="Izračunaj">&#9924;</button></div>
                             </div>
+                            <div class="input-group">
+                                <label>Kvota: Žuti karton</label>
+                                <div class="input-wrapper">
+                                    <input type="number" class="player-base-odd" data-odd-type="zuti-karton" step="0.01">
+                                    <button type="button" class="calc-btn" data-odd-type="zuti-karton" data-stat-type="Fls_90" title="Izračunaj">&#9924;</button>
+                                </div>
+                            </div>
                              <div class="input-group sm:col-span-2">
                                 <label>Očekivani broj pasova (λ)</label>
                                 <div class="input-wrapper"><input type="number" class="player-base-odd" data-odd-type="pasovi-lambda" step="0.01"><button type="button" class="calc-btn" data-odd-type="pasovi-lambda" data-stat-type="Pass_Att_90" title="Izračunaj">&#9924;</button></div>
@@ -566,8 +573,23 @@
             const statValue = parseFloat(statInput.value) || 0;
             const margin = parseFloat($('#bookmaker-margin').value) || 0;
 
+            if (statValue <= 0) {
+                oddInput.value = '';
+                return;
+            }
+
             if (oddType === 'pasovi-lambda') {
                 oddInput.value = statValue.toFixed(2);
+            } else if (oddType === 'zuti-karton') {
+                const prob_1_plus_fouls = 1 - poissonProbability(statValue, 0);
+                const odd_1_plus_fouls = probToOdd(prob_1_plus_fouls);
+                if (odd_1_plus_fouls) {
+                    let rawOdd = odd_1_plus_fouls * 3.2;
+                    let finalOdd = applyMarginToOdd(rawOdd, margin);
+                    oddInput.value = formatOdd(finalOdd);
+                } else {
+                    oddInput.value = '';
+                }
             } else {
                 const probability = 1 - poissonProbability(statValue, 0);
                 let rawOdd = probToOdd(probability);
@@ -639,7 +661,9 @@
                     createBet(playerName, 'ukupno nacinjenih', 'faulova 1+', baseOdds['faulovi-1'], false);
                     createBet(playerName, 'ukupno nacinjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]));
                     createBet(playerName, 'ukupno nacinjenih', 'faulova 3+', probToOdd(1 - p[0] - p[1] - p[2]));
-                    createBet(playerName, 'dobija', 'karton', baseOdds['faulovi-1'] * 3.2);
+                }
+                if (baseOdds['zuti-karton'] > 0) {
+                    createBet(playerName, 'dobija', 'karton', baseOdds['zuti-karton'], false);
                 }
                 if (baseOdds['faulovi-iznudjeni-1'] > 0) {
                     const lambda = getLambdaFromProb(oddToProb(baseOdds['faulovi-iznudjeni-1']));
