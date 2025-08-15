@@ -11,7 +11,7 @@ exports.handler = async (event, context) => {
   
   // Set up the API call parameters
   const from = Math.floor(Date.now() / 1000);
-  const to = from + (48 * 3600); // 48 hours from now
+  const to = from + (72 * 3600); // 72 hours from now
   const API_URL = `https://sports-api.cloudbet.com/pub/v2/odds/events?sport=soccer&from=${from}&to=${to}&live=false&markets=soccer.anytime_goalscorer&markets=soccer.match_odds&players=true&limit=150`;
 
   try {
