@@ -841,13 +841,16 @@
 
             const createBet = (playerName, m2, m3, o, amf = true) => {
                 const currentMargin = amf ? margin : 0;
-                const finalOddValue = applyMarginToOdd(o, currentMargin);
+                let finalOddValue = applyMarginToOdd(o, currentMargin);
                 
                 if (finalOddValue === null || finalOddValue <= 1) return;
 
                 const isShotsMarket = m2.includes('suteva');
                 if (isShotsMarket && finalOddValue > 7) return;
-                if (!isShotsMarket && finalOddValue > 150) return;
+
+                if (finalOddValue > 60) {
+                    finalOddValue = 60;
+                }
 
                 allResults.push({ player: playerName, market2: m2, market3: m3, odd: formatOdd(finalOddValue) });
             };
@@ -865,9 +868,18 @@
                     
                     createBet(playerName, 'daje', 'gol', baseOdds['daje-gol'], false);
                     createBet(playerName, 'daje gol', 'do 10. min', probToOdd(1 - poissonPMF(playerLambda / 9, 0)));
-                    createBet(playerName, 'daje', '2+ golova', probToOdd(1 - p_poisson[0] - p_poisson[1]));
-                    createBet(playerName, 'daje', '3+ golova', probToOdd(1 - p_poisson[0] - p_poisson[1] - p_poisson[2]));
                     
+                    // New logic for 2+ and 3+ goals with specific margins
+                    const prob_2plus = 1 - p_poisson[0] - p_poisson[1];
+                    let odd_2plus_raw = probToOdd(prob_2plus);
+                    let odd_2plus_final = applyMarginToOdd(odd_2plus_raw, 20);
+                    createBet(playerName, 'daje', '2+ golova', odd_2plus_final, false);
+
+                    const prob_3plus = 1 - p_poisson[0] - p_poisson[1] - p_poisson[2];
+                    let odd_3plus_raw = probToOdd(prob_3plus);
+                    let odd_3plus_final = applyMarginToOdd(odd_3plus_raw, 30);
+                    createBet(playerName, 'daje', '3+ golova', odd_3plus_final, false);
+
                     const lambda_1h = playerLambda * 0.44;
                     const lambda_2h = playerLambda * 0.56;
                     
