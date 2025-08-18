@@ -834,7 +834,7 @@
         const calculatePlayerOdds = () => {
             let allResults = [];
             const playerCards = document.querySelectorAll('.player-card');
-            const margin = parseFloat($('#bookmaker-margin').value) || 0;
+            let margin = parseFloat($('#bookmaker-margin').value) || 0;
             
             const eventId = eventSelect.value;
             const event = apiEvents.find(e => e.id == eventId);
