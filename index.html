@@ -13,6 +13,21 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+            color: #6b7280;
+        }
+        .tab-btn.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         /* --- Base Input Styling --- */
         .input-group label {
             display: block;
@@ -38,6 +53,12 @@
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+         .input-group input:read-only {
+            background-color: #eef2ff;
+            color: #4338ca;
+            border-color: #c7d2fe;
+            font-weight: 600;
         }
 
         /* --- Player Card --- */
@@ -175,31 +196,104 @@
          .action-btn.success:focus-visible {
             box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.4);
         }
+        .editable-odd {
+            border: 1px solid transparent;
+            background-color: transparent;
+            text-align: right;
+            font-weight: bold;
+            color: #2563eb;
+            width: 100%;
+        }
+        .editable-odd:focus {
+            background-color: #eff6ff;
+            border-color: #93c5fd;
+            outline: none;
+            box-shadow: none;
+        }
+
+        /* --- Tour Tooltip --- */
+        #tour-highlight {
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+        #tour-arrow {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            transform: rotate(45deg);
+        }
+        #tour-tooltip.arrow-top #tour-arrow {
+            bottom: -6px;
+            left: calc(50% - 6px);
+        }
+        #tour-tooltip.arrow-bottom #tour-arrow {
+            top: -6px;
+            left: calc(50% - 6px);
+        }
+        #tour-tooltip.arrow-left #tour-arrow {
+            right: -6px;
+            top: calc(50% - 6px);
+        }
+        #tour-tooltip.arrow-right #tour-arrow {
+            left: -6px;
+            top: calc(50% - 6px);
+        }
+        #tour-tooltip h3 {
+            cursor: move;
+        }
+        #tour-close {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.75rem;
+            font-size: 1.5rem;
+            line-height: 1;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        #tour-close:hover {
+            color: #374151;
+        }
 
     </style>
 </head>
 <body class="bg-gray-100 text-slate-800">
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div class="max-w-6xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8">
-            <header class="flex items-center justify-between mb-8 border-b border-slate-200 pb-6">
+        <div class="max-w-6xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+            <header class="p-6 sm:p-8 flex items-center justify-between border-b border-slate-200">
                  <div class="flex items-center gap-4">
                     <div class="bg-blue-100 text-blue-600 p-3 rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calculator"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x1="16" y1="14" y2="18"/><line x1="16" x1="12" y1="14" y2="14"/><line x1="12" x1="12" y1="14" y2="18"/><line x1="8" x1="8" y1="10" y2="18"/><line x1="8" x1="12" y1="10" y2="10"/></svg>
                     </div>
                     <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">Generator Kvota</h1>
                  </div>
-                 <div id="status-container" class="flex items-center gap-2.5 text-sm font-medium">
-                    <div id="status-indicator" class="w-2.5 h-2.5 rounded-full bg-red-500 pulse-red" title="Status učitavanja baze podataka"></div>
-                    <span id="status-text" class="text-slate-500">Učitavanje...</span>
+                 <div class="flex items-center gap-4">
+                    <div id="status-container" class="flex items-center gap-2.5 text-sm font-medium">
+                        <div id="status-indicator" class="w-2.5 h-2.5 rounded-full bg-red-500 pulse-red" title="Status učitavanja baze podataka"></div>
+                        <span id="status-text" class="text-slate-500">Učitavanje...</span>
+                    </div>
+                    <button id="start-tour-btn" class="flex items-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold py-2 px-3 rounded-lg shadow-sm transition-all text-sm">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-help-circle"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                        Pomoć
+                    </button>
                  </div>
             </header>
 
-            <form id="odds-form">
-                <section id="api-section" class="mb-8 p-6 bg-slate-50 border border-slate-200 rounded-lg">
+            <div class="border-b border-slate-200">
+                <nav class="flex -mb-px px-6 sm:px-8">
+                    <button class="tab-btn active" data-tab="players">Igrači</button>
+                    <button class="tab-btn" data-tab="specials">Specijal</button>
+                </nav>
+            </div>
+            
+            <div class="p-6 sm:p-8">
+                 <section id="api-section" class="mb-8 p-6 bg-slate-50 border border-slate-200 rounded-lg">
                     <h3 class="font-bold text-lg text-slate-800 mb-4">Preuzimanje Podataka sa API-ja</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div class="md:col-span-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div class="md:col-span-3">
                             <button type="button" id="fetch-api-btn" class="w-full md:w-auto action-btn secondary">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                 <span id="api-btn-text">Učitaj Mečeve sa API-ja</span>
@@ -214,86 +308,183 @@
                             <label for="event-select">Meč</label>
                             <select id="event-select" disabled></select>
                         </div>
-                        <div class="input-group">
-                            <label for="team-select">Tim</label>
-                            <select id="team-select" disabled></select>
-                        </div>
                     </div>
                 </section>
 
-                <section class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
-                    <div class="input-group lg:col-span-2"><label for="match-name">Naziv Utakmice</label><input type="text" id="match-name"></div>
-                    <div class="input-group"><label for="kickoff-date">Datum početka</label><input type="date" id="kickoff-date"></div>
-                    <div class="input-group"><label for="kickoff-time">Vreme početka</label><input type="time" id="kickoff-time"></div>
-                    <div class="input-group"><label for="team-win-odd">Kvota na Pobedu</label><input type="number" id="team-win-odd" step="0.01" value="1.85"></div>
-                    <div class="input-group"><label for="correlation-factor" class="text-xs sm:text-sm">Faktor Kor. (Gol/Pobeda)</label><input type="number" id="correlation-factor" step="0.1" value="1.3"></div>
-                    <div class="input-group"><label for="bookmaker-margin">Margina (%)</label><input type="number" id="bookmaker-margin" step="0.1" value="10"></div>
-                </section>
-                <section class="border-t border-slate-200 pt-8">
-                    <div id="players-section-header" class="flex flex-wrap justify-between items-end gap-4 mb-6">
-                        <h3 class="text-xl font-bold text-slate-700 w-full sm:w-auto">Igrači</h3>
-                        <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                            <!-- New API Player Adder -->
-                            <div id="api-player-adder" class="flex items-end gap-2 hidden">
-                                 <div class="input-group flex-grow">
-                                    <label for="api-player-select">Dodaj igrača iz ponude</label>
-                                    <select id="api-player-select"></select>
-                                 </div>
-                                 <button type="button" id="add-api-player-btn" class="h-10 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all transform hover:scale-105 flex-shrink-0" title="Dodaj izabranog igrača">
-                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                 </button>
-                            </div>
-                            <!-- Manual Filter -->
-                            <div class="input-group max-w-xs">
-                                <label for="team-filter">Filtriraj po Ekipi (iz baze)</label>
-                                <select id="team-filter"></select>
-                            </div>
-                        </div>
+                <!-- Common Match Details -->
+                <section id="match-details-section" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 hidden">
+                    <div class="input-group md:col-span-1"><label for="match-name">Naziv Utakmice</label><input type="text" id="match-name"></div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="input-group"><label for="kickoff-date">Datum početka</label><input type="date" id="kickoff-date"></div>
+                        <div class="input-group"><label for="kickoff-time">Vreme početka</label><input type="time" id="kickoff-time"></div>
                     </div>
-                    <div id="players-container" class="space-y-6"></div>
                 </section>
-                <div class="flex justify-center mt-6 mb-8"><button type="button" id="add-player-btn" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all transform hover:scale-105"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Dodaj Igrača Ručno</button></div>
-            </form>
 
-            <div class="flex flex-col md:flex-row justify-center items-center gap-4 my-8">
-                <button id="generate-btn" class="w-full md:w-auto action-btn primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span id="generate-btn-text">Generiši Kvote</span>
-                </button>
-                <button type="button" id="reset-btn" class="w-full md:w-auto action-btn secondary">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 1 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path></svg>
-                    Poništi Unos
-                </button>
-            </div>
-
-            <div id="preview-section" class="hidden">
-                <h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-6 text-center">Pregled Generisanih Kvota</h2>
-                <div class="overflow-x-auto rounded-lg border border-slate-200">
-                    <table class="min-w-full">
-                        <thead class="bg-slate-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Igrač</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Opis 1</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Opis 2</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Kvota</th>
-                                <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Ukloni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="preview-table-body" class="bg-white"></tbody>
-                    </table>
+                <!-- Players Tab Content -->
+                <div id="tab-players" class="tab-content active">
+                    <form id="odds-form">
+                        <section class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mb-8">
+                             <div class="input-group">
+                                <label for="team-select">Tim</label>
+                                <select id="team-select" disabled></select>
+                            </div>
+                            <div class="input-group"><label for="team-win-odd">Kvota na Pobedu</label><input type="number" id="team-win-odd" step="0.01" value="1.85"></div>
+                            <div class="input-group"><label for="bookmaker-margin">Margina (%)</label><input type="number" id="bookmaker-margin" step="0.1" value="10"></div>
+                        </section>
+                        
+                        <section class="border-t border-slate-200 pt-8">
+                            <div id="players-section-header" class="flex flex-wrap justify-between items-end gap-4 mb-6">
+                                <h3 class="text-xl font-bold text-slate-700 w-full sm:w-auto">Igrači</h3>
+                                <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                                    <div id="api-player-adder" class="flex items-end gap-2 hidden">
+                                         <div class="input-group flex-grow">
+                                            <label for="api-player-select">Dodaj igrača iz ponude</label>
+                                            <select id="api-player-select"></select>
+                                         </div>
+                                         <button type="button" id="add-api-player-btn" class="h-10 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all transform hover:scale-105 flex-shrink-0" title="Dodaj izabranog igrača">
+                                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                         </button>
+                                    </div>
+                                    <div class="input-group max-w-xs">
+                                        <label for="team-filter">Filtriraj po Ekipi (iz baze)</label>
+                                        <select id="team-filter"></select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="players-container" class="space-y-6"></div>
+                        </section>
+                        <div class="flex justify-center mt-6 mb-8"><button type="button" id="add-player-btn" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all transform hover:scale-105"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Dodaj Igrača Ručno</button></div>
+                    </form>
                 </div>
-                <div class="flex justify-center mt-8">
-                    <button id="download-csv-btn" class="w-full md:w-auto action-btn success">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m8 17 4 4 4-4"></path></svg>
-                        Preuzmi CSV
+
+                <!-- Specials Tab Content -->
+                <div id="tab-specials" class="tab-content">
+                    <form id="specials-form">
+                         <section class="mb-8 p-6 bg-slate-50 border border-slate-200 rounded-lg">
+                            <h3 class="font-bold text-lg text-slate-800 mb-4">Parametri za Specijal</h3>
+                             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                <div class="input-group">
+                                    <label for="special-goals-lambda">Oč. Golova (λ)</label>
+                                    <input type="number" id="special-goals-lambda" step="0.1" value="2.5" title="Očekivani ukupan broj golova na meču">
+                                </div>
+                                <div class="input-group">
+                                    <label for="special-goals-lambda-home">Oč. Golova Domaćin</label>
+                                    <input type="number" id="special-goals-lambda-home" step="0.1" value="1.4" readonly title="Očekivani broj golova za domaćina">
+                                </div>
+                                <div class="input-group">
+                                    <label for="special-goals-lambda-away">Oč. Golova Gost</label>
+                                    <input type="number" id="special-goals-lambda-away" step="0.1" value="1.1" readonly title="Očekivani broj golova za gosta">
+                                </div>
+                                 <div class="input-group">
+                                    <label for="special-corners-lambda">Oč. Kornera (λ)</label>
+                                    <input type="number" id="special-corners-lambda" step="0.1" value="10.5" title="Očekivani ukupan broj kornera na meču">
+                                </div>
+                                <div class="input-group">
+                                    <label for="special-cards-lambda">Oč. Kartona (λ)</label>
+                                    <input type="number" id="special-cards-lambda" step="0.1" value="4.5" title="Očekivani ukupan broj kartona na meču">
+                                </div>
+                                 <div class="input-group">
+                                    <label for="special-sot-lambda">Oč. Šuteva u Okvir (λ)</label>
+                                    <input type="number" id="special-sot-lambda" step="0.1" value="8.5" title="Očekivani ukupan broj šuteva u okvir gola na meču">
+                                </div>
+                                <div class="input-group">
+                                    <label for="special-corners-lambda-home">Oč. Kornera Domaćin</label>
+                                    <input type="number" id="special-corners-lambda-home" step="0.1" value="5.5" readonly title="Očekivani broj kornera za domaćina">
+                                </div>
+                                <div class="input-group">
+                                    <label for="special-corners-lambda-away">Oč. Kornera Gost</label>
+                                    <input type="number" id="special-corners-lambda-away" step="0.1" value="5.0" readonly title="Očekivani broj kornera za gosta">
+                                </div>
+                                <div class="input-group">
+                                    <label for="special-gg-prob">GG Verovatnoća (%)</label>
+                                    <input type="number" id="special-gg-prob" step="0.1" value="55.0" title="Verovatnoća da oba tima daju gol">
+                                </div>
+                                <div class="input-group">
+                                    <label for="special-penalty-odd">Kvota za Penal</label>
+                                    <input type="number" id="special-penalty-odd" step="0.01" value="3.0" title="Kvota da će biti dosuđen penal na meču">
+                                </div>
+                                <div class="input-group">
+                                    <label for="special-red-card-odd">Kvota za Crveni Karton</label>
+                                    <input type="number" id="special-red-card-odd" step="0.01" value="4.0" title="Kvota da će biti dodeljen crveni karton na meču">
+                                </div>
+                             </div>
+                        </section>
+                         <section class="mb-8 p-6 bg-slate-50 border border-slate-200 rounded-lg">
+                            <h3 class="font-bold text-lg text-slate-800 mb-4">API Podaci za Meč</h3>
+                            <button type="button" id="toggle-api-data-btn" class="action-btn secondary !py-2 !px-4 !text-sm mb-4">Prikaži/Sakrij API Podatke</button>
+                            <div id="api-data-display" class="hidden bg-white text-slate-700 p-4 rounded-lg border border-slate-200">
+                                <pre class="text-xs whitespace-pre-wrap"></pre>
+                            </div>
+                        </section>
+                    </form>
+                </div>
+
+                <!-- Common Action Buttons & Preview -->
+                <div class="flex flex-col md:flex-row justify-center items-center gap-4 my-8">
+                    <button id="generate-btn" class="w-full md:w-auto action-btn primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <span id="generate-btn-text">Generiši Kvote</span>
                     </button>
+                    <button type="button" id="reset-btn" class="w-full md:w-auto action-btn secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 1 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path></svg>
+                        Poništi Unos
+                    </button>
+                </div>
+
+                <div id="preview-section" class="hidden">
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-6 text-center">Pregled Generisanih Kvota</h2>
+                     <div class="flex items-center justify-between mb-4">
+                        <p id="preview-match-name" class="text-sm font-medium text-slate-600"></p>
+                        <div class="flex items-center gap-2">
+                             <input type="text" id="csv-match-name" placeholder="MATCH_NAME" class="input-group input !w-auto text-sm">
+                             <input type="text" id="csv-league-name" placeholder="LEAGUE_NAME" class="input-group input !w-auto text-sm">
+                        </div>
+                     </div>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table class="min-w-full">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Igrač / Igra</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Opis 1</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Opis 2</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Kvota</th>
+                                    <th scope="col" class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Ukloni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-table-body" class="bg-white"></tbody>
+                        </table>
+                    </div>
+                    <div class="flex justify-center mt-8">
+                        <button id="download-csv-btn" class="w-full md:w-auto action-btn success">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m8 17 4 4 4-4"></path></svg>
+                            Preuzmi CSV
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Tour HTML -->
+    <div id="tour-tooltip" class="hidden fixed bg-white rounded-lg shadow-xl z-50 p-4 max-w-xs transition-all duration-300">
+        <div id="tour-arrow" class="absolute bg-white w-3 h-3 transform rotate-45"></div>
+        <button id="tour-close">&times;</button>
+        <h3 id="tour-title" class="font-bold text-lg mb-2 text-slate-800 pr-6"></h3>
+        <p id="tour-text" class="text-sm text-slate-600 mb-4"></p>
+        <div class="flex justify-between items-center">
+            <button id="tour-skip" class="text-xs text-slate-500 hover:text-slate-800">Preskoči</button>
+            <div>
+                <button id="tour-prev" class="text-sm font-medium py-1 px-3 rounded-md hover:bg-slate-100">Prethodno</button>
+                <button id="tour-next" class="text-sm font-medium py-1 px-3 rounded-md bg-blue-600 text-white hover:bg-blue-700">Dalje</button>
+            </div>
+        </div>
+    </div>
+    <div id="tour-highlight" class="hidden fixed rounded-md border-2 border-blue-500 z-40 transition-all duration-300 pointer-events-none"></div>
+
+
     <script>
         const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => document.querySelectorAll(selector);
         const on = (element, event, handler) => element.addEventListener(event, handler);
         
         // DOM Element Constants
@@ -314,19 +505,66 @@
         const apiPlayerAdder = $('#api-player-adder');
         const apiPlayerSelect = $('#api-player-select');
         const addApiPlayerBtn = $('#add-api-player-btn');
+        const tabButtons = $$('.tab-btn');
+        const tabContents = $$('.tab-content');
+        const matchDetailsSection = $('#match-details-section');
+        const toggleApiDataBtn = $('#toggle-api-data-btn');
+        const apiDataDisplay = $('#api-data-display');
+        const startTourBtn = $('#start-tour-btn');
         
         // Global State
         let playerCounter = 0;
         let allFbrefStats = [];
         let apiEvents = [];
         let availableApiPlayers = [];
+        let currentTab = 'players';
 
         // --- Math & Stat Helpers ---
-        const factorial = n => { if (n < 0) return NaN; if (n === 0) return 1; let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; };
-        const poissonProbability = (l, k) => (l < 0) ? 0 : (Math.pow(l, k) * Math.exp(-l)) / factorial(k);
+        let factCache = [1];
+        const factorial = n => {
+            if (n < 0) return NaN;
+            if (factCache[n] !== undefined) return factCache[n];
+            let val = factCache[factCache.length - 1];
+            for (let i = factCache.length; i <= n; i++) {
+                val *= i;
+                factCache[i] = val;
+            }
+            return val;
+        };
+        const poissonPMF = (mu, k) => Math.exp(-mu) * Math.pow(mu, k) / factorial(k);
         const probToOdd = p => (p <= 0 || p >= 1) ? null : 1 / p;
         const oddToProb = o => (o <= 1) ? 1 : 1 / o;
         const getLambdaFromProb = p => (p <= 0 || p >= 1) ? 0 : -Math.log(1 - p);
+        const poissonCDF = (lambda, k) => {
+            let sum = 0;
+            for (let i = 0; i <= k; i++) {
+                sum += poissonPMF(lambda, i);
+            }
+            return sum;
+        };
+        const probOver = (lambda, k) => 1 - poissonCDF(lambda, k);
+        const probUnder = (lambda, k) => poissonCDF(lambda, k - 1);
+        
+        // Funkcija za izračunavanje verovatnoće da igrač postigne gol i njegov tim pobedi
+        const scoreAndWin = (muTeam, muOpponent, playerLambda, maxGoals = 10) => {
+            let s = playerLambda / muTeam; // Udeo igrača u golovima tima
+            let prob = 0;
+            
+            for (let gTeam = 0; gTeam <= maxGoals; gTeam++) {
+                let pTeam = poissonPMF(muTeam, gTeam);
+                for (let gOpponent = 0; gOpponent <= maxGoals; gOpponent++) {
+                    let pOpponent = poissonPMF(muOpponent, gOpponent);
+                    
+                    if (gTeam > gOpponent) {
+                        // Verovatnoća da igrač da gol ako tim postigne gTeam golova
+                        let pPlayer = 1 - Math.pow(1 - s, gTeam);
+                        prob += pTeam * pOpponent * pPlayer;
+                    }
+                }
+            }
+            
+            return prob;
+        };
         
         const get24hTime = (date = new Date()) => {
             const hours = String(date.getHours()).padStart(2, '0');
@@ -335,8 +573,8 @@
         };
         
         const formatOdd = (o) => {
-            if (o === null) return 'N/A';
-            if (o <= 1) return '1.01';
+            if (o === null || isNaN(o)) return 'N/A';
+            if (o <= 1.01) return '1.01';
 
             let roundedOdd;
             if (o >= 10) {
@@ -347,13 +585,6 @@
             return roundedOdd.toFixed(2);
         };
 
-        const poissonCDF = (lambda, k) => {
-            let sum = 0;
-            for (let i = 0; i <= k; i++) {
-                sum += poissonProbability(lambda, i);
-            }
-            return sum;
-        };
         const applyMarginToOdd = (odd, margin) => {
             if (!odd || margin <= 0 || odd <= 1) return odd;
             const p = 1 / odd;
@@ -404,6 +635,7 @@
             const playerCard = document.createElement('div');
             playerCard.className = 'player-card';
             playerCard.id = cardId;
+            playerCard.dataset.teamSide = playerData.teamSide || '';
             playerCard.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <h3 class="text-lg font-bold text-slate-700">Igrač ${playerCounter}</h3>
@@ -581,7 +813,7 @@
             if (oddType === 'pasovi-lambda') {
                 oddInput.value = statValue.toFixed(2);
             } else if (oddType === 'zuti-karton') {
-                const prob_1_plus_fouls = 1 - poissonProbability(statValue, 0);
+                const prob_1_plus_fouls = 1 - poissonPMF(statValue, 0);
                 const odd_1_plus_fouls = probToOdd(prob_1_plus_fouls);
                 if (odd_1_plus_fouls) {
                     let rawOdd = odd_1_plus_fouls * 3.2;
@@ -591,7 +823,7 @@
                     oddInput.value = '';
                 }
             } else {
-                const probability = 1 - poissonProbability(statValue, 0);
+                const probability = 1 - poissonPMF(statValue, 0);
                 let rawOdd = probToOdd(probability);
                 let finalOdd = applyMarginToOdd(rawOdd, margin);
                 oddInput.value = formatOdd(finalOdd);
@@ -599,12 +831,13 @@
         };
 
         // --- Main Calculation Logic ---
-        const calculateOdds = () => {
+        const calculatePlayerOdds = () => {
             let allResults = [];
             const playerCards = document.querySelectorAll('.player-card');
             const margin = parseFloat($('#bookmaker-margin').value) || 0;
-            const teamWinOdd = parseFloat($('#team-win-odd').value) || 0;
-            const correlationFactor = parseFloat($('#correlation-factor').value) || 1.0;
+            
+            const eventId = eventSelect.value;
+            const event = apiEvents.find(e => e.id == eventId);
 
             const createBet = (playerName, m2, m3, o, amf = true) => {
                 const finalOddValue = amf ? applyMarginToOdd(o, margin) : o;
@@ -626,51 +859,96 @@
                 card.querySelectorAll('.player-base-odd').forEach(input => baseOdds[input.dataset.oddType] = parseFloat(input.value) || 0);
                 
                 if (baseOdds['daje-gol'] > 0) {
-                    const lambda = getLambdaFromProb(oddToProb(baseOdds['daje-gol']));
-                    const p = [poissonProbability(lambda, 0), poissonProbability(lambda, 1), poissonProbability(lambda, 2)];
+                    const playerLambda = getLambdaFromProb(oddToProb(baseOdds['daje-gol']));
+                    const p_poisson = [poissonPMF(playerLambda, 0), poissonPMF(playerLambda, 1), poissonPMF(playerLambda, 2)];
+                    
+                    // Main goalscorer odd - no margin, as requested
                     createBet(playerName, 'daje', 'gol', baseOdds['daje-gol'], false);
-                    createBet(playerName, 'daje gol', 'do 10. min', probToOdd(1 - poissonProbability(lambda / 9, 0)));
-                    createBet(playerName, 'daje', '2+ golova', probToOdd(1 - p[0] - p[1]));
-                    createBet(playerName, 'daje', '3+ golova', probToOdd(1 - p[0] - p[1] - p[2]));
-                    createBet(playerName, 'daje gol', 'u 1. poluvremenu', probToOdd(1 - poissonProbability(lambda * 0.44, 0)));
-                    createBet(playerName, 'daje gol', 'u 2. poluvremenu', probToOdd(1 - poissonProbability(lambda * 0.56, 0)));
-                    createBet(playerName, 'daje gol', 'u oba pol.', probToOdd((1 - poissonProbability(lambda * 0.44, 0)) * (1 - poissonProbability(lambda * 0.56, 0))));
+                    
+                    createBet(playerName, 'daje gol', 'do 10. min', probToOdd(1 - poissonPMF(playerLambda / 9, 0)));
+                    createBet(playerName, 'daje', '2+ golova', probToOdd(1 - p_poisson[0] - p_poisson[1]));
+                    createBet(playerName, 'daje', '3+ golova', probToOdd(1 - p_poisson[0] - p_poisson[1] - p_poisson[2]));
+                    
+                    // UPDATED LOGIC for halves
+                    const lambda_1h = playerLambda * 0.44;
+                    const lambda_2h = playerLambda * 0.56;
+                    
+                    const prob_1h = 1 - poissonPMF(lambda_1h, 0);
+                    const prob_2h = 1 - poissonPMF(lambda_2h, 0);
+
+                    const odd_1h = probToOdd(prob_1h);
+                    const odd_2h = probToOdd(prob_2h);
+                    
+                    const odd_both_halves = (odd_1h && odd_2h) ? odd_1h * odd_2h : null;
+
+                    createBet(playerName, 'daje gol', 'u 1. poluvremenu', odd_1h);
+                    createBet(playerName, 'daje gol', 'u 2. poluvremenu', odd_2h);
+                    createBet(playerName, 'daje gol', 'u oba pol.', odd_both_halves);
+                    
                     createBet(playerName, 'daje', 'prvi gol', baseOdds['daje-gol'] * 2.6);
                     createBet(playerName, 'daje', 'zadnji gol', baseOdds['daje-gol'] * 2.6);
                     
-                    if (teamWinOdd > 1) {
-                        const probPlayerScores = oddToProb(baseOdds['daje-gol']);
-                        const probTeamWins = oddToProb(teamWinOdd);
-                        const probPlayerScoresInWin = probPlayerScores * correlationFactor;
-                        const cappedProbPlayerScoresInWin = Math.min(probPlayerScoresInWin, 0.99);
-                        const combinedProb = cappedProbPlayerScoresInWin * probTeamWins;
-                        const oddScoresAndWins = probToOdd(combinedProb);
-                        createBet(playerName, 'daje gol', 'i tim pobedjuje', oddScoresAndWins, true);
+                    if (event && event.lambdaHome && event.lambdaAway) {
+                        const teamSide = card.dataset.teamSide;
+                        const teamLambda = teamSide === 'home' ? event.lambdaHome : event.lambdaAway;
+                        const teamWinOdd = parseFloat($(`#team-select option[value="${teamSide}"]`).dataset.odd) || 0;
+                        
+                        if (teamLambda > 0 && teamWinOdd > 1) {
+                            const opponentSide = teamSide === 'home' ? 'away' : 'home';
+                            const opponentLambda = opponentSide === 'home' ? event.lambdaHome : event.lambdaAway;
+                            const probScoresAndWins = scoreAndWin(teamLambda, opponentLambda, playerLambda, 15);
+                            const teamName = teamSide === 'home' ? event.home.name : event.away.name;
+                            createBet(playerName, 'daje gol i', `${teamName} pobedjuje`, probToOdd(probScoresAndWins), true);
+                        }
                     }
                 }
                 if (baseOdds['sutevi-okvir-1'] > 0) {
                     const lambda = getLambdaFromProb(oddToProb(baseOdds['sutevi-okvir-1']));
-                    const p = [poissonProbability(lambda, 0), poissonProbability(lambda, 1), poissonProbability(lambda, 2)];
+                    const p = [poissonPMF(lambda, 0), poissonPMF(lambda, 1), poissonPMF(lambda, 2)];
                     createBet(playerName, 'ukupno suteva', 'u okvir gola 1+', baseOdds['sutevi-okvir-1'], false);
-                    createBet(playerName, 'ukupno suteva', 'u okvir gola 2+', probToOdd(1 - p[0] - p[1]));
-                    createBet(playerName, 'ukupno suteva', 'u okvir gola 3+', probToOdd(1 - p[0] - p[1] - p[2]));
+                    createBet(playerName, 'ukupno suteva', 'u okvir gola 2+', probToOdd(1 - p[0] - p[1]), true);
+                    createBet(playerName, 'ukupno suteva', 'u okvir gola 3+', probToOdd(1 - p[0] - p[1] - p[2]), true);
                 }
                 if (baseOdds['faulovi-1'] > 0) {
                     const lambda = getLambdaFromProb(oddToProb(baseOdds['faulovi-1']));
-                    const p = [poissonProbability(lambda, 0), poissonProbability(lambda, 1), poissonProbability(lambda, 2)];
-                    createBet(playerName, 'ukupno nacinjenih', 'faulova 1+', baseOdds['faulovi-1'], false);
-                    createBet(playerName, 'ukupno nacinjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]));
-                    createBet(playerName, 'ukupno nacinjenih', 'faulova 3+', probToOdd(1 - p[0] - p[1] - p[2]));
+                    const p = [poissonPMF(lambda, 0), poissonPMF(lambda, 1), poissonPMF(lambda, 2)];
+                    const baseOdd = baseOdds['faulovi-1'];
+                    
+                    if (baseOdd < 1.3) {
+                        // Ako je kvota za 1+ ispod 1.3, prikazujemo 2+ i 3+
+                        createBet(playerName, 'ukupno nacinjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]), true);
+                        // Za 3+ koristimo marginu od 20%
+                        const originalMargin = margin;
+                        margin = 20;
+                        createBet(playerName, 'ukupno nacinjenih', 'faulova 3+', probToOdd(1 - p[0] - p[1] - p[2]), true);
+                        margin = originalMargin;
+                    } else {
+                        // Inače prikazujemo 1+ i 2+
+                        createBet(playerName, 'ukupno nacinjenih', 'faulova 1+', baseOdd, false);
+                        createBet(playerName, 'ukupno nacinjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]), true);
+                    }
                 }
                 if (baseOdds['zuti-karton'] > 0) {
                     createBet(playerName, 'dobija', 'karton', baseOdds['zuti-karton'], false);
                 }
                 if (baseOdds['faulovi-iznudjeni-1'] > 0) {
                     const lambda = getLambdaFromProb(oddToProb(baseOdds['faulovi-iznudjeni-1']));
-                    const p = [poissonProbability(lambda, 0), poissonProbability(lambda, 1), poissonProbability(lambda, 2)];
-                    createBet(playerName, 'ukupno iznudjenih', 'faulova 1+', baseOdds['faulovi-iznudjeni-1'], false);
-                    createBet(playerName, 'ukupno iznudjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]));
-                    createBet(playerName, 'ukupno iznudjenih', 'faulova 3+', probToOdd(1 - p[0] - p[1] - p[2]));
+                    const p = [poissonPMF(lambda, 0), poissonPMF(lambda, 1), poissonPMF(lambda, 2)];
+                    const baseOdd = baseOdds['faulovi-iznudjeni-1'];
+                    
+                    if (baseOdd < 1.3) {
+                        // Ako je kvota za 1+ ispod 1.3, prikazujemo 2+ i 3+
+                        createBet(playerName, 'ukupno iznudjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]), true);
+                        // Za 3+ koristimo marginu od 20%
+                        const originalMargin = margin;
+                        margin = 20;
+                        createBet(playerName, 'ukupno iznudjenih', 'faulova 3+', probToOdd(1 - p[0] - p[1] - p[2]), true);
+                        margin = originalMargin;
+                    } else {
+                        // Inače prikazujemo 1+ i 2+
+                        createBet(playerName, 'ukupno iznudjenih', 'faulova 1+', baseOdd, false);
+                        createBet(playerName, 'ukupno iznudjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]), true);
+                    }
                 }
                 if (baseOdds['pasovi-lambda'] > 0) {
                     const lambda = baseOdds['pasovi-lambda'];
@@ -703,14 +981,114 @@
             });
             return allResults;
         };
+        
+        const calculateCorrelatedProbability = (probA, probB, boost = 1.15) => {
+            const p_less_likely = Math.min(probA, probB);
+            const p_more_likely = Math.max(probA, probB);
+            const boosted_p = Math.min(p_more_likely * boost, 0.99);
+            return p_less_likely * boosted_p;
+        };
+
+        const calculateSpecialOdds = () => {
+            const results = [];
+            const margin = parseFloat($('#bookmaker-margin').value) || 0;
+            const goalsLambda = parseFloat($('#special-goals-lambda').value) || 0;
+            const cornersLambda = parseFloat($('#special-corners-lambda').value) || 0;
+            const cardsLambda = parseFloat($('#special-cards-lambda').value) || 0;
+            const sotLambda = parseFloat($('#special-sot-lambda').value) || 0;
+            const penaltyOdd = parseFloat($('#special-penalty-odd').value) || 0;
+            const redCardOdd = parseFloat($('#special-red-card-odd').value) || 0;
+
+            const eventId = eventSelect.value;
+            const event = apiEvents.find(e => e.id == eventId);
+
+            if (!event || goalsLambda <= 0 || cornersLambda <= 0 || cardsLambda <= 0) {
+                alert("Molimo Vas izaberite meč i proverite da li su unete validne očekivane vrednosti.");
+                return [];
+            }
+            
+            const homeTeam = event.home.name;
+            const awayTeam = event.away.name;
+
+            const createSpecialBet = (m2, m3, prob) => {
+                if (prob <= 0 || prob >= 1) return;
+                const rawOdd = probToOdd(prob);
+                const finalOdd = applyMarginToOdd(rawOdd, margin);
+                results.push({ player: 'Specijal', market2: m2, market3: m3, odd: formatOdd(finalOdd) });
+            };
+            
+            // Probabilities
+            const p_gg = (parseFloat($('#special-gg-prob').value) / 100) || (1 - Math.exp(-goalsLambda * 0.35));
+            const p_3plus_goals = event.prob_3plus_goals || probOver(goalsLambda, 2);
+            const p_under_4_goals = probUnder(goalsLambda, 4);
+            const p_3plus_cards = probOver(cardsLambda, 2);
+            const p_4plus_cards = probOver(cardsLambda, 3);
+            const p_2plus_cards_team = probOver(cardsLambda / 2, 1);
+            const p_1plus_card_team = probOver(cardsLambda / 2, 0);
+            const p_10plus_corners = event.prob_10plus_corners || probOver(cornersLambda, 9);
+            const p_15plus_corners = probOver(cornersLambda, 14);
+            const p_3plus_corners_half = probOver(cornersLambda * 0.45, 2) * probOver(cornersLambda * 0.55, 2);
+            const p_9plus_sot = probOver(sotLambda, 8);
+            const p_11plus_sot = probOver(sotLambda, 10);
+            const p_penal = oddToProb(penaltyOdd);
+            const p_red = oddToProb(redCardOdd);
+            const lambdaPerMin = goalsLambda / 90;
+
+            // Calculations
+            createSpecialBet('Oba tima 2+ kartona', '', p_2plus_cards_team * p_2plus_cards_team);
+            createSpecialBet('Penal i crveni karton', '', calculateCorrelatedProbability(p_penal, p_red, 1.1));
+            createSpecialBet('Penal ili crveni karton', '', p_penal + p_red - (p_penal * p_red));
+            createSpecialBet('Manje od 4 gola', 'i uk. 3+ kartona', p_under_4_goals * p_3plus_cards);
+            createSpecialBet('11+ suteva u okvir', 'i GG', calculateCorrelatedProbability(p_11plus_sot, p_gg, 1.2));
+            createSpecialBet('9+ suteva u okvir', 'i GG', calculateCorrelatedProbability(p_9plus_sot, p_gg, 1.2));
+            createSpecialBet('Oba tima 1+ kartona', 'i GG', (p_1plus_card_team * p_1plus_card_team) * p_gg);
+            createSpecialBet('10+ suteva u okvir', 'i 3+ golova', calculateCorrelatedProbability(probOver(sotLambda, 9), p_3plus_goals, 1.3));
+            createSpecialBet('3+ golova', 'i 10+ kornera', p_3plus_goals * p_10plus_corners);
+            createSpecialBet('3+ golova', 'i 4+ kartona', p_3plus_goals * p_4plus_cards);
+            createSpecialBet(`${homeTeam} pobedjuje`, 'posle penala', 0.1);
+            createSpecialBet(`${awayTeam} pobedjuje`, 'posle penala', 0.1);
+            createSpecialBet('10+ kornera', 'i GG', p_10plus_corners * p_gg);
+            createSpecialBet('15+ kornera', 'i GG', p_15plus_corners * p_gg);
+            createSpecialBet('15+ kornera', 'i 3+ golova', p_15plus_corners * p_3plus_goals);
+            createSpecialBet('3+ kornera', 'u svakom pol.', p_3plus_corners_half);
+            createSpecialBet('Gol u nadoknadi', '2. pol.', 1 - Math.exp(-lambdaPerMin * 6));
+            createSpecialBet('Gol u nadoknadi', '1. pol.', 1 - Math.exp(-lambdaPerMin * 3));
+            createSpecialBet('Sudija gleda VAR', '', 0.4);
+            createSpecialBet('Izmena postize gol', '', 0.2);
+            createSpecialBet('Precka ili stativa', 'na mecu', 0.5);
+            createSpecialBet('Gol iz slobodnog udarca', '', 0.08);
+            createSpecialBet('Gol izvan 16m', '', 0.2);
+            createSpecialBet('Dosudjen penal', 'za oba tima', (p_penal/2) * (p_penal/2));
+            createSpecialBet('Gol glavom na mecu', '', 0.28);
+
+            return results;
+        };
+
 
         // --- UI Update & CSV ---
         const updatePreviewTable = (data) => {
             previewTableBody.innerHTML = '';
+            const eventId = eventSelect.value;
+            const event = apiEvents.find(e => e.id == eventId);
+
             if (data.length === 0) {
                 previewSection.classList.add('hidden');
                 return;
             }
+
+             if (currentTab === 'players') {
+                $('#preview-match-name').textContent = event ? `${event.home.name} vs ${event.away.name}` : 'Igrači';
+                $('#csv-match-name').value = $('#match-name').value || 'MATCH';
+                $('#csv-league-name').placeholder = 'LEAGUE_NAME (Ime Igrača)';
+                $('#csv-league-name').value = '';
+            } else {
+                $('#preview-match-name').textContent = event ? `${event.home.name} vs ${event.away.name}` : 'Specijal';
+                $('#csv-match-name').value = 'XTip Specijal';
+                $('#csv-league-name').value = event ? `${event.home.name} vs ${event.away.name}` : 'Izabrani Meč';
+                $('#csv-league-name').placeholder = 'LEAGUE_NAME (Ime Meča)';
+            }
+
+
             data.sort((a,b) => a.player.localeCompare(b.player) || (a.market2+a.market3).localeCompare(b.market2+b.market3))
                 .forEach((item) => {
                     const row = previewTableBody.insertRow();
@@ -719,7 +1097,9 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">${item.player}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${item.market2}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${item.market3}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-blue-600">${item.odd}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                            <input type="number" class="editable-odd" step="0.01" value="${item.odd}" />
+                        </td>
                         <td class="px-4 py-4 text-center">
                             <button type="button" class="remove-preview-row" title="Ukloni ovu kvotu iz CSV-a">&times;</button>
                         </td>
@@ -738,52 +1118,64 @@
             const header = "Datum,Vreme,Sifra,Domacin,Gost,1,X,2,GR,U,O,Yes,No\r\n";
             let csvContent = header;
 
-            const matchName = $('#match-name').value || 'MATCH';
-            const matchRow = [`MATCH_NAME:${matchName}`, '', '', '', '', '', '', '', '', '', '', '', ''].join(',');
-            csvContent += matchRow + '\r\n';
-            
-            const dateVal = $('#kickoff-date').value;
-            const timeVal = $('#kickoff-time').value;
+            const dateVal = $('#kickoff-date').value || new Date().toISOString().split('T')[0];
+            const timeVal = $('#kickoff-time').value || get24hTime(new Date());
             let date, time;
 
-            if (dateVal) {
-                const [y, m, d] = dateVal.split('-');
-                date = `${d}.${m}.${y}`;
-            } else {
-                const now = new Date();
-                date = `${now.getDate()}.${now.getMonth() + 1}.${now.getFullYear()}`;
-            }
-            time = timeVal || get24hTime(new Date());
+            const [y, m, d] = dateVal.split('-');
+            date = `${d}.${m}.${y}`;
+            time = timeVal;
 
-            const playerData = {};
-            visibleRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const playerName = cells[0].textContent;
-                if (!playerData[playerName]) {
-                    playerData[playerName] = [];
-                }
-                playerData[playerName].push({
-                    market2: cells[1].textContent,
-                    market3: cells[2].textContent,
-                    odd: cells[3].textContent,
-                });
-            });
+            const matchName = $('#csv-match-name').value;
+            const leagueName = $('#csv-league-name').value;
 
-            for (const playerName in playerData) {
-                const leagueRow = [`LEAGUE_NAME:${playerName}`, '', '', '', '', '', '', '', '', '', '', '', ''].join(',');
-                csvContent += leagueRow + '\r\n';
+            if (currentTab === 'specials') {
+                csvContent += [`MATCH_NAME:${matchName}`, '', '', '', '', '', '', '', '', '', '', '', ''].join(',') + '\r\n';
+                csvContent += [`LEAGUE_NAME:${leagueName}`, '', '', '', '', '', '', '', '', '', '', '', ''].join(',') + '\r\n';
                 
-                playerData[playerName].forEach(item => {
-                    const rowData = [ date, time, '', item.market2, item.market3, item.odd, '', '', '', '', '', '', '' ];
+                visibleRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    const market2 = cells[1].textContent;
+                    const market3 = cells[2].textContent;
+                    const odd = cells[3].querySelector('.editable-odd').value;
+                    const rowData = [ date, time, '', market2, market3, odd, '', '', '', '', '', '', '' ];
                     csvContent += rowData.join(',') + '\r\n';
                 });
-                csvContent += '\n';
+
+            } else { // Players tab
+                csvContent += [`MATCH_NAME:${matchName}`, '', '', '', '', '', '', '', '', '', '', '', ''].join(',') + '\r\n';
+                
+                const playerData = {};
+                visibleRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    const playerName = cells[0].textContent;
+                    if (!playerData[playerName]) {
+                        playerData[playerName] = [];
+                    }
+                    playerData[playerName].push({
+                        market2: cells[1].textContent,
+                        market3: cells[2].textContent,
+                        odd: cells[3].querySelector('.editable-odd').value,
+                    });
+                });
+
+                for (const playerName in playerData) {
+                    const leagueRow = [`LEAGUE_NAME:${playerName}`, '', '', '', '', '', '', '', '', '', '', '', ''].join(',');
+                    csvContent += leagueRow + '\r\n';
+                    
+                    playerData[playerName].forEach(item => {
+                        const rowData = [ date, time, '', item.market2, item.market3, item.odd, '', '', '', '', '', '', '' ];
+                        csvContent += rowData.join(',') + '\r\n';
+                    });
+                    csvContent += '\n';
+                }
             }
             
             const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
+            const fileName = matchName.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '_odds.csv';
             link.href = URL.createObjectURL(blob);
-            link.download = `${matchName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_odds.csv`;
+            link.download = fileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -792,16 +1184,18 @@
         // --- Form Reset & Initial Load ---
         const resetForm = () => {
             $('#odds-form').reset();
-            const now = new Date();
-            $('#kickoff-date').value = now.toISOString().split('T')[0];
-            $('#kickoff-time').value = get24hTime(now);
+            $('#specials-form').reset();
+            
             playersContainer.innerHTML = '';
             playerCounter = 0;
-            addPlayer(); // Add one empty manual card
+            if(currentTab === 'players') addPlayer(); 
             previewSection.classList.add('hidden');
             teamFilter.value = '';
             apiPlayerAdder.classList.add('hidden');
             apiPlayerSelect.innerHTML = '';
+            matchDetailsSection.classList.add('hidden');
+            apiDataDisplay.classList.add('hidden');
+            apiDataDisplay.querySelector('pre').textContent = '';
         };
 
         const populateTeamFilter = (teams) => {
@@ -818,7 +1212,6 @@
             const indicator = $('#status-indicator');
             const statusText = $('#status-text');
             try {
-                // IMPORTANT: Make sure this file exists in your project directory
                 const response = await fetch('/player_data/merged_player_stats.json'); 
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 allFbrefStats = await response.json();
@@ -854,18 +1247,18 @@
                 }
                 const data = await response.json();
                 
-                const competitionsWithGoalscorerMarket = data.competitions.map(comp => {
-                    const relevantEvents = comp.events.filter(event => event.markets && event.markets['soccer.anytime_goalscorer']);
+                const competitionsWithRelevantMarkets = data.competitions.map(comp => {
+                    const relevantEvents = comp.events.filter(event => event.markets && (event.markets['soccer.anytime_goalscorer'] || event.markets['soccer.totals.corners']));
                     return { ...comp, events: relevantEvents };
                 }).filter(comp => comp.events.length > 0);
 
-                apiEvents = competitionsWithGoalscorerMarket.flatMap(comp => comp.events.map(event => ({...event, competitionName: comp.name, competitionKey: comp.key })));
+                apiEvents = competitionsWithRelevantMarkets.flatMap(comp => comp.events.map(event => ({...event, competitionName: comp.name, competitionKey: comp.key })));
 
                 if (apiEvents.length === 0) {
-                     apiStatus.textContent = 'Nije pronađen nijedan meč sa kvotama za strelce.';
+                     apiStatus.textContent = 'Nije pronađen nijedan meč sa relevantnim kvotama (strelci, korneri).';
                 } else {
-                     populateCompetitionSelect(competitionsWithGoalscorerMarket);
-                     apiStatus.textContent = `Uspešno učitano ${apiEvents.length} mečeva sa ponudom za strelce.`;
+                     populateCompetitionSelect(competitionsWithRelevantMarkets);
+                     apiStatus.textContent = `Uspešno učitano ${apiEvents.length} mečeva.`;
                      competitionSelect.disabled = false;
                 }
 
@@ -917,30 +1310,167 @@
                 apiPlayerAdder.classList.add('hidden');
                 return;
             }
-            players.sort((a,b) => a.name.localeCompare(b.name)).forEach(player => {
+            players.sort((a, b) => a.goalscorerOdd - b.goalscorerOdd).forEach(player => {
                 const option = document.createElement('option');
                 option.value = player.name;
                 option.textContent = `${player.name} (${player.goalscorerOdd})`;
                 option.dataset.odd = player.goalscorerOdd;
+                option.dataset.teamSide = player.teamSide;
                 apiPlayerSelect.appendChild(option);
             });
             apiPlayerAdder.classList.remove('hidden');
         };
+        
+        const setLambdaInput = (element, value, fallback) => {
+            if (value !== null && value > 0) {
+                element.value = value.toFixed(2);
+                element.readOnly = true;
+            } else {
+                element.value = fallback;
+                element.readOnly = false;
+            }
+        };
+
+        const calculateTeamCornerLambdas = (event, totalLambdaCorners) => {
+            const handicapMarket = event.markets?.['soccer.corner_handicap']?.submarkets?.['period=ft_corners']?.selections;
+            if (!handicapMarket || totalLambdaCorners <= 0) {
+                return { lambdaHome: totalLambdaCorners * 0.55, lambdaAway: totalLambdaCorners * 0.45 };
+            }
+
+            let bestHandicap = null;
+            let minOddDiff = Infinity;
+
+            const handicaps = new Set(handicapMarket.map(s => s.params.replace('handicap=', '')));
+            for (const h of handicaps) {
+                const homeSelection = handicapMarket.find(s => s.params === `handicap=${h}` && s.outcome === 'home');
+                const awaySelection = handicapMarket.find(s => s.params === `handicap=${h}` && s.outcome === 'away');
+                if (homeSelection && awaySelection) {
+                    const diff = Math.abs(homeSelection.price - awaySelection.price);
+                    if (diff < minOddDiff) {
+                        minOddDiff = diff;
+                        bestHandicap = parseFloat(h);
+                    }
+                }
+            }
+            
+            if (bestHandicap !== null) {
+                const expectedDifference = -bestHandicap;
+                const lambdaHome = (totalLambdaCorners + expectedDifference) / 2;
+                const lambdaAway = totalLambdaCorners - lambdaHome;
+                return { lambdaHome, lambdaAway };
+            }
+
+            return { lambdaHome: totalLambdaCorners * 0.55, lambdaAway: totalLambdaCorners * 0.45 };
+        };
+
+        const findMarketLine = (event, market, submarket) => {
+            const selections = event.markets?.[market]?.submarkets?.[submarket]?.selections;
+            if (!selections) return null;
+
+            let bestLine = null;
+            let minProbDiff = Infinity;
+
+            const uniqueLines = [...new Set(selections.map(s => s.params.replace('total=', '')))];
+
+            for (const lineName of uniqueLines) {
+                const overSelection = selections.find(s => s.outcome === 'over' && s.params === `total=${lineName}`);
+                if (overSelection && overSelection.probability) {
+                    const diff = Math.abs(overSelection.probability - 0.5);
+                    if (diff < minProbDiff) {
+                        minProbDiff = diff;
+                        bestLine = lineName;
+                    }
+                }
+            }
+            
+            if(!bestLine && uniqueLines.length > 0) {
+                bestLine = uniqueLines[0];
+            }
+
+            if (bestLine) {
+                const overSelection = selections.find(s => s.outcome === 'over' && s.params === `total=${bestLine}`);
+                const probOver = oddToProb(overSelection.price);
+                let lambda = 0;
+                let minError = Infinity;
+                for (let l = 0.1; l < 20; l += 0.05) {
+                    const p_over = 1 - poissonCDF(l, parseFloat(bestLine));
+                    const error = Math.abs(p_over - probOver);
+                    if (error < minError) {
+                        minError = error;
+                        lambda = l;
+                    }
+                }
+                return lambda;
+            }
+            return null;
+        };
+        
+        const calculateTeamLambdas = (event) => {
+            const matchOddsMarket = event.markets?.['soccer.match_odds']?.submarkets?.['period=ft']?.selections;
+            const totalGoalsLambda = findMarketLine(event, 'soccer.total_goals', 'period=ft');
+
+            if (!matchOddsMarket || !totalGoalsLambda) {
+                return { lambdaHome: null, lambdaAway: null };
+            }
+
+            const homeOdd = matchOddsMarket.find(s => s.outcome === 'home')?.price;
+            const drawOdd = matchOddsMarket.find(s => s.outcome === 'draw')?.price;
+            const awayOdd = matchOddsMarket.find(s => s.outcome === 'away')?.price;
+
+            if (!homeOdd || !drawOdd || !awayOdd) return { lambdaHome: null, lambdaAway: null };
+            
+            const normalizeProb = (oHome, oDraw, oAway) => {
+                let pH_raw = 1 / oHome;
+                let pD_raw = 1 / oDraw;
+                let pA_raw = 1 / oAway;
+                let S = pH_raw + pD_raw + pA_raw;
+                return { pH: pH_raw / S, pD: pD_raw / S, pA: pA_raw / S };
+            };
+            
+            const homeWinProb = (muH, muA) => {
+                let prob = 0;
+                let maxGoals = Math.ceil(muH + muA + 10);
+                for (let i = 1; i <= maxGoals; i++) {
+                    prob += poissonPMF(muH, i) * poissonCDF(muA, i - 1);
+                }
+                return prob;
+            };
+
+            let { pH } = normalizeProb(homeOdd, drawOdd, awayOdd);
+            let a = 1e-6;
+            let b = totalGoalsLambda - 1e-6;
+            if (a >= b) return { lambdaHome: totalGoalsLambda / 2, lambdaAway: totalGoalsLambda / 2 };
+
+            let mid, fmid;
+            while (b - a > 1e-6) {
+                mid = (a + b) / 2;
+                let muH = mid;
+                let muA = totalGoalsLambda - muH;
+                fmid = homeWinProb(muH, muA) - pH;
+                if (fmid > 0) b = mid;
+                else a = mid;
+            }
+            let muH = (a + b) / 2;
+            let muA = totalGoalsLambda - muH;
+            return { lambdaHome: muH, lambdaAway: muA };
+        };
 
         const populateMatchData = (eventId) => {
-            playersContainer.innerHTML = ''; // Clear existing player cards
-            playerCounter = 0;
+            resetForm();
             const event = apiEvents.find(e => e.id == eventId);
             if (!event) {
                 apiPlayerAdder.classList.add('hidden');
                 return;
             }
-
-            $('#match-name').value = `${event.home.name} vs ${event.away.name}`;
-            const kickoff = new Date(event.cutoffTime);
+            
+            matchDetailsSection.classList.remove('hidden');
+            const now = new Date();
+            const kickoff = event.cutoffTime ? new Date(event.cutoffTime) : now;
             $('#kickoff-date').value = kickoff.toISOString().split('T')[0];
             $('#kickoff-time').value = get24hTime(kickoff);
 
+            // --- Populate Player Tab Data ---
+            $('#match-name').value = `${event.home.name} vs ${event.away.name}`;
             teamSelect.innerHTML = `<option value="all">Svi Igrači</option>`;
             const matchOddsMarket = event.markets?.['soccer.match_odds']?.submarkets?.['period=ft']?.selections;
             if (matchOddsMarket) {
@@ -952,77 +1482,165 @@
             }
             teamSelect.disabled = false;
             
-            // Extract players and populate the dropdown
             availableApiPlayers = [];
             const goalscorerSelections = event.markets?.['soccer.anytime_goalscorer']?.submarkets?.['period=ft']?.selections;
-
-            if (event.players && Object.keys(event.players).length > 0) {
-                 for (const playerKey in event.players) {
-                     const player = event.players[playerKey];
-                     let selection = goalscorerSelections?.find(s => s.name === player.name || s.outcome === `player=${playerKey}`);
-                     if (selection && selection.status === 'SELECTION_ENABLED') {
-                        availableApiPlayers.push({
-                            name: player.name,
-                            goalscorerOdd: selection.price,
-                            teamSide: player.team.toLowerCase()
-                        });
-                     }
-                 }
-            } else if (goalscorerSelections) { // Fallback
+            if (goalscorerSelections) {
                  goalscorerSelections.forEach(selection => {
                     if (selection.status === 'SELECTION_ENABLED') {
                         const playerName = parsePlayerNameFromOutcome(selection.outcome);
-                        // Cannot determine team side in this fallback case
-                        availableApiPlayers.push({ name: playerName, goalscorerOdd: selection.price, teamSide: 'all' });
+                        const playerInfo = Object.values(event.players || {}).find(p => p.name === playerName);
+                        availableApiPlayers.push({ name: playerName, goalscorerOdd: selection.price, teamSide: playerInfo ? playerInfo.team.toLowerCase() : 'unknown' });
                     }
                  });
             }
             populateApiPlayerSelect(availableApiPlayers);
+            
+            // --- Populate Specials Tab Data ---
+            const ggInput = $('#special-gg-prob');
+            const bttsMarket = event.markets?.['soccer.both_teams_to_score']?.submarkets?.['period=ft']?.selections;
+            let ggProb = null;
+            if (bttsMarket) {
+                const yesOdd = bttsMarket.find(s => s.outcome === 'yes')?.price;
+                if (yesOdd) {
+                    ggProb = oddToProb(yesOdd);
+                    event.prob_gg = ggProb; 
+                }
+            }
+            
+            if (ggProb) {
+                ggInput.value = (ggProb * 100).toFixed(2);
+                ggInput.readOnly = true;
+            } else {
+                ggInput.value = 55.0;
+                ggInput.readOnly = false;
+            }
+
+            const goalsLambda = findMarketLine(event, 'soccer.total_goals', 'period=ft');
+            const cornersLambda = findMarketLine(event, 'soccer.total_corners', 'period=ft_corners');
+            const cardsLambda = findMarketLine(event, 'soccer.totals.cards', 'period=ft');
+
+            const over2_5_goals = event.markets?.['soccer.total_goals']?.submarkets?.['period=ft']?.selections.find(s => s.params === 'total=2.5' && s.outcome === 'over');
+            if (over2_5_goals) event.prob_3plus_goals = oddToProb(over2_5_goals.price);
+
+            const over9_5_corners = event.markets?.['soccer.total_corners']?.submarkets?.['period=ft_corners']?.selections.find(s => s.params === 'total=9.5' && s.outcome === 'over');
+            if (over9_5_corners) event.prob_10plus_corners = oddToProb(over9_5_corners.price);
+            
+            setLambdaInput($('#special-goals-lambda'), goalsLambda, 2.5);
+            setLambdaInput($('#special-corners-lambda'), cornersLambda, 10.5);
+            setLambdaInput($('#special-cards-lambda'), cardsLambda, 4.5);
+            
+            const { lambdaHome, lambdaAway } = calculateTeamLambdas(event);
+            event.lambdaHome = lambdaHome;
+            event.lambdaAway = lambdaAway;
+            setLambdaInput($('#special-goals-lambda-home'), lambdaHome, (goalsLambda || 2.5) / 2);
+            setLambdaInput($('#special-goals-lambda-away'), lambdaAway, (goalsLambda || 2.5) / 2);
+
+            const totalCorners = parseFloat($('#special-corners-lambda').value);
+            const { lambdaHome: cornerLambdaHome, lambdaAway: cornerLambdaAway } = calculateTeamCornerLambdas(event, totalCorners);
+            
+            setLambdaInput($('#special-corners-lambda-home'), cornerLambdaHome, totalCorners * 0.55);
+            setLambdaInput($('#special-corners-lambda-away'), cornerLambdaAway, totalCorners * 0.45);
+
+            // Populate API data display
+            let formattedApiText = '';
+            const marketsToDisplay = {
+                'Golovi': event.markets?.['soccer.total_goals']?.submarkets?.['period=ft']?.selections,
+                'Korneri': event.markets?.['soccer.total_corners']?.submarkets?.['period=ft_corners']?.selections,
+                'Hendikep Kornera': event.markets?.['soccer.corner_handicap']?.submarkets?.['period=ft_corners']?.selections,
+                'Kartoni': event.markets?.['soccer.totals.cards']?.submarkets?.['period=ft']?.selections,
+                'Oba Tima Daju Gol': event.markets?.['soccer.both_teams_to_score']?.submarkets?.['period=ft']?.selections,
+            };
+
+            for(const [name, selections] of Object.entries(marketsToDisplay)) {
+                if (selections && selections.length > 0) {
+                    formattedApiText += `${name}:\n`;
+                    const lines = {};
+                    selections.forEach(sel => {
+                        const key = sel.params || sel.outcome;
+                        if (!lines[key]) lines[key] = {};
+                        lines[key][sel.outcome] = sel.price;
+                    });
+                    for (const [line, outcomes] of Object.entries(lines)) {
+                         formattedApiText += `  - ${line}: `;
+                         const odds = Object.entries(outcomes).map(([type, price]) => `${type}@${price}`).join(', ');
+                         formattedApiText += `${odds}\n`;
+                    }
+                    formattedApiText += '\n';
+                }
+            }
+            apiDataDisplay.querySelector('pre').textContent = formattedApiText || 'Nema dostupnih podataka za ove markete.';
         };
 
 
         // --- Event Listeners ---
+        tabButtons.forEach(button => {
+            on(button, 'click', () => {
+                const tab = button.dataset.tab;
+                currentTab = tab;
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                tabContents.forEach(content => content.classList.remove('active'));
+                $(`#tab-${tab}`).classList.add('active');
+                $('#generate-btn-text').textContent = tab === 'players' ? 'Generiši Kvote' : 'Generiši Specijal Kvote';
+                previewSection.classList.add('hidden');
+
+                const eventSelectOption = eventSelect.options[eventSelect.selectedIndex];
+                if (eventSelectOption && eventSelect.value) {
+                    if (tab === 'specials') {
+                        $('#match-name').value = eventSelectOption.textContent;
+                    } else {
+                        const teamFilterValue = teamFilter.value;
+                        const teamSelectOption = teamSelect.options[teamSelect.selectedIndex];
+                        if (teamFilterValue) {
+                            $('#match-name').value = teamFilterValue;
+                        } else if (teamSelectOption && teamSelect.value !== 'all') {
+                            $('#match-name').value = teamSelectOption.textContent;
+                        } else {
+                            $('#match-name').value = eventSelectOption.textContent;
+                        }
+                    }
+                }
+            });
+        });
+
         on(fetchApiBtn, 'click', fetchApiEvents);
         on(competitionSelect, 'change', e => populateEventSelect(e.target.value));
         on(eventSelect, 'change', e => populateMatchData(e.target.value));
+        
         on(teamSelect, 'change', e => {
             const selectedOption = e.target.options[e.target.selectedIndex];
             const odd = selectedOption.dataset.odd;
-            if (odd) {
-                $('#team-win-odd').value = odd;
-            }
-            if (e.target.value === 'all' || !selectedOption.textContent) {
-                const eventSelectOption = eventSelect.options[eventSelect.selectedIndex];
-                $('#match-name').value = eventSelectOption.textContent || '';
-            } else {
-                $('#match-name').value = selectedOption.textContent;
-            }
+            if (odd) $('#team-win-odd').value = odd;
             
-            // Filter the player dropdown based on selected team
+            if (currentTab === 'players') {
+                if (e.target.value === 'all' || !selectedOption.textContent) {
+                    const eventSelectOption = eventSelect.options[eventSelect.selectedIndex];
+                    $('#match-name').value = eventSelectOption.textContent || '';
+                } else {
+                    $('#match-name').value = selectedOption.textContent;
+                }
+            }
+
             const selectedTeamSide = e.target.value;
             const playersToDisplay = selectedTeamSide === 'all' 
                 ? availableApiPlayers 
-                : availableApiPlayers.filter(p => p.teamSide === selectedTeamSide);
+                : availableApiPlayers.filter(p => p.teamSide === selectedTeamSide || p.teamSide === 'all');
             populateApiPlayerSelect(playersToDisplay);
         });
 
         on(addApiPlayerBtn, 'click', () => {
             const selectedOption = apiPlayerSelect.options[apiPlayerSelect.selectedIndex];
             if (!selectedOption || !selectedOption.value) return;
-
             const playerName = selectedOption.value;
             const goalscorerOdd = selectedOption.dataset.odd;
-
-            // Check if player is already on the list
+            const teamSide = selectedOption.dataset.teamSide;
             const existingPlayers = Array.from(document.querySelectorAll('.player-name-search')).map(input => input.value);
             if (existingPlayers.includes(playerName)) {
                 alert(`Igrač ${playerName} je već dodat.`);
                 return;
             }
-
-            const playerCard = addPlayer({ name: playerName, goalscorerOdd });
+            const playerCard = addPlayer({ name: playerName, goalscorerOdd, teamSide });
             playersContainer.appendChild(playerCard);
-            
             const fbrefPlayer = allFbrefStats.find(p => p.Player.toLowerCase() === playerName.toLowerCase());
             if (fbrefPlayer) {
                 const nameInput = playerCard.querySelector('.player-name-search');
@@ -1036,15 +1654,22 @@
             generateBtn.disabled = true;
             btnText.textContent = 'Računam...';
             setTimeout(() => {
-                const generatedData = calculateOdds(); 
+                const generatedData = currentTab === 'players' ? calculatePlayerOdds() : calculateSpecialOdds();
                 updatePreviewTable(generatedData);
                 generateBtn.disabled = false;
-                btnText.textContent = 'Generiši Kvote';
+                btnText.textContent = currentTab === 'players' ? 'Generiši Kvote' : 'Generiši Specijal Kvote';
             }, 50);
         });
         on(downloadCsvBtn, 'click', downloadCSV);
         on(addPlayerBtn, 'click', () => playersContainer.appendChild(addPlayer()));
-        on(resetBtn, 'click', resetForm);
+        on(resetBtn, 'click', () => {
+            const now = new Date();
+            const date = now.toISOString().split('T')[0];
+            const time = get24hTime(now);
+            resetForm();
+            $('#kickoff-date').value = date;
+            $('#kickoff-time').value = time;
+        });
         
         on(playersContainer, 'input', e => { 
             if (e.target.classList.contains('player-name-search')) showAutocomplete(e.target);
@@ -1055,38 +1680,175 @@
         });
         on(document, 'click', e => {
              if (!e.target.closest('.player-name-search')) {
-                document.querySelectorAll('.autocomplete-suggestions').forEach(s => s.classList.add('hidden'));
+                $$('.autocomplete-suggestions').forEach(s => s.classList.add('hidden'));
             }
         });
         on(playersContainer, 'click', e => {
             const target = e.target.closest('button');
             if (!target) return;
-
-            if (target.classList.contains('remove-player-btn')) {
-                target.closest('.player-card')?.remove();
-            } else if (target.classList.contains('add-shot-line-btn')) {
-                const container = target.previousElementSibling;
-                container.insertAdjacentHTML('beforeend', createShotLineHTML('', '', true));
-            } else if (target.classList.contains('calc-shot-btn')) {
-                calculateOddForLine(target);
-            } else if (target.classList.contains('remove-shot-line-btn')) {
-                target.closest('.shot-line')?.remove();
-            } else if (target.classList.contains('calc-btn')) {
-                calculateSingleBaseOdd(target);
-            }
+            if (target.classList.contains('remove-player-btn')) target.closest('.player-card')?.remove();
+            else if (target.classList.contains('add-shot-line-btn')) target.previousElementSibling.insertAdjacentHTML('beforeend', createShotLineHTML('', '', true));
+            else if (target.classList.contains('calc-shot-btn')) calculateOddForLine(target);
+            else if (target.classList.contains('remove-shot-line-btn')) target.closest('.shot-line')?.remove();
+            else if (target.classList.contains('calc-btn')) calculateSingleBaseOdd(target);
         });
         on(previewTableBody, 'click', e => {
             const target = e.target.closest('.remove-preview-row');
-            if (target) {
-                target.closest('tr').remove();
-            }
+            if (target) target.closest('tr').remove();
         });
         
         on(teamFilter, 'change', () => {
+             if (currentTab !== 'players') return;
             const selectedTeam = teamFilter.value;
-            if (selectedTeam) $('#match-name').value = selectedTeam;
+            if (selectedTeam) {
+                $('#match-name').value = selectedTeam;
+            } else {
+                const eventSelectOption = eventSelect.options[eventSelect.selectedIndex];
+                if (eventSelectOption && eventSelect.value) {
+                    $('#match-name').value = eventSelectOption.textContent;
+                }
+            }
         });
         
+        on(toggleApiDataBtn, 'click', () => {
+            apiDataDisplay.classList.toggle('hidden');
+        });
+
+        // --- Tour Logic ---
+        const tourHighlight = $('#tour-highlight');
+        const tourTooltip = $('#tour-tooltip');
+        const tourTitle = $('#tour-title');
+        const tourText = $('#tour-text');
+        const tourNext = $('#tour-next');
+        const tourPrev = $('#tour-prev');
+        const tourSkip = $('#tour-skip');
+        const tourClose = $('#tour-close');
+        let currentStep = 0;
+
+        const tourSteps = [
+            { element: '#fetch-api-btn', title: 'Korak 1: Učitavanje Mečeva', text: 'Kliknite ovde da biste preuzeli najnovije mečeve i kvote sa API-ja.', position: 'bottom' },
+            { element: '#competition-select', title: 'Korak 2: Izbor Takmičenja', text: 'Nakon učitavanja, ovde izaberite željeno takmičenje.', position: 'bottom' },
+            { element: '#event-select', title: 'Korak 3: Izbor Meča', text: 'Zatim, izaberite meč za koji želite da generišete kvote.', position: 'bottom' },
+            { element: '#team-select', title: 'Korak 4: Izbor Tima', text: 'Možete filtrirati igrače po timu kako biste lakše pronašli željenog igrača.', position: 'right' },
+            { element: '#api-player-adder', title: 'Korak 5: Dodavanje Igrača', text: 'Izaberite igrača iz padajućeg menija i kliknite na "+" dugme da ga dodate u listu za obradu.', position: 'bottom' },
+            { element: '#generate-btn', title: 'Korak 6: Generisanje Kvota', text: 'Kada ste dodali sve željene igrače, kliknite ovde da generišete sve kvote.', position: 'top' },
+            { element: '#download-csv-btn', title: 'Korak 7: Preuzimanje CSV Fajla', text: 'Na kraju, preuzmite generisane kvote u CSV formatu klikom na ovo dugme.', position: 'top' },
+        ];
+
+        function showStep(index) {
+            const step = tourSteps[index];
+            const targetElement = $(step.element);
+
+            if (!targetElement || targetElement.offsetParent === null) {
+                if (index < tourSteps.length - 1) {
+                    showStep(index + 1);
+                } else {
+                    endTour();
+                }
+                return;
+            }
+            
+            const rect = targetElement.getBoundingClientRect();
+            
+            tourHighlight.classList.remove('hidden');
+            tourHighlight.style.width = `${rect.width + 8}px`;
+            tourHighlight.style.height = `${rect.height + 8}px`;
+            tourHighlight.style.top = `${rect.top - 4}px`;
+            tourHighlight.style.left = `${rect.left - 4}px`;
+
+            tourTitle.textContent = step.title;
+            tourText.textContent = step.text;
+            tourTooltip.classList.remove('hidden');
+            
+            tourTooltip.className = tourTooltip.className.replace(/arrow-\w+/g, '');
+            tourTooltip.classList.add(`arrow-${step.position}`);
+
+            const tooltipRect = tourTooltip.getBoundingClientRect();
+
+            switch (step.position) {
+                case 'bottom':
+                    tourTooltip.style.top = `${rect.bottom + 15}px`;
+                    tourTooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                    break;
+                case 'top':
+                    tourTooltip.style.top = `${rect.top - tooltipRect.height - 15}px`;
+                    tourTooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                    break;
+                case 'right':
+                     tourTooltip.style.top = `${rect.top + rect.height / 2 - tooltipRect.height / 2}px`;
+                     tourTooltip.style.left = `${rect.right + 15}px`;
+                    break;
+                case 'left':
+                     tourTooltip.style.top = `${rect.top + rect.height / 2 - tooltipRect.height / 2}px`;
+                     tourTooltip.style.left = `${rect.left - tooltipRect.width - 15}px`;
+                    break;
+            }
+
+            tourPrev.style.display = index === 0 ? 'none' : 'inline-block';
+            tourNext.textContent = index === tourSteps.length - 1 ? 'Završi' : 'Dalje';
+        }
+
+        function startTour() {
+            currentStep = 0;
+            showStep(currentStep);
+        }
+
+        function endTour() {
+            tourHighlight.classList.add('hidden');
+            tourTooltip.classList.add('hidden');
+        }
+
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            const header = element.querySelector("h3");
+
+            const dragMouseDown = (e) => {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            };
+
+            if (header) {
+                header.onmousedown = dragMouseDown;
+            }
+
+            const elementDrag = (e) => {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+            };
+
+            const closeDragElement = () => {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            };
+        }
+
+        on(startTourBtn, 'click', startTour);
+        on(tourSkip, 'click', endTour);
+        on(tourClose, 'click', endTour);
+        on(tourNext, 'click', () => {
+            if (currentStep < tourSteps.length - 1) {
+                currentStep++;
+                showStep(currentStep);
+            } else {
+                endTour();
+            }
+        });
+        on(tourPrev, 'click', () => {
+            if (currentStep > 0) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        });
+
+
         // --- Initial Setup ---
         window.onload = () => {
             const now = new Date();
@@ -1096,6 +1858,7 @@
             apiPlayerAdder.classList.add('hidden');
             apiPlayerSelect.innerHTML = '';
             fetchFbrefData();
+            makeDraggable(tourTooltip);
         };
     </script>
 </body>
