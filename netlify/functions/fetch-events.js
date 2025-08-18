@@ -1,7 +1,12 @@
+/**
+ * Netlify serverless function to securely fetch sports events data from the Cloudbet API.
+ * This function now fetches data for a specific list of top leagues.
+ */
 exports.handler = async (event, context) => {
   // Get the secret API key from the Netlify environment variables
   const API_KEY = process.env.API_KEY;
 
+  // Check if the API key is configured in the Netlify environment
   if (!API_KEY) {
     return {
       statusCode: 500,
@@ -9,33 +14,56 @@ exports.handler = async (event, context) => {
     };
   }
   
-  // Set up the API call parameters
+  // Set up the time window for the API call (from now to 48 hours in the future)
   const from = Math.floor(Date.now() / 1000);
-  const to = from + (72 * 3600); // 72 hours from now
-  const API_URL = `https://sports-api.cloudbet.com/pub/v2/odds/events?sport=soccer&from=${from}&to=${to}&live=false&markets=soccer.anytime_goalscorer&markets=soccer.match_odds&players=true&limit=200`;
+  const to = from + (72 * 3600); // 
+  // List of specific league keys to fetch
+  const leagueKeys = [
+    'soccer-france-ligue-1',
+    'soccer-england-premier-league',
+    'soccer-international-clubs-uefa-champions-league',
+    'soccer-international-clubs-uefa-europa-league',
+    'soccer-international-clubs-t6eeb-uefa-europa-conference-league',
+    'soccer-germany-bundesliga',
+    'soccer-italy-serie-a',
+    'soccer-spain-laliga'
+  ];
 
   try {
-      const response = await fetch(API_URL, {
+    // Create a fetch promise for each league
+    const fetchPromises = leagueKeys.map(key => {
+      const API_URL = `https://sports-api.cloudbet.com/pub/v2/odds/competitions/${key}?from=${from}&to=${to}&players=true&limit=100`;
+      return fetch(API_URL, {
         headers: { 'X-API-Key': API_KEY }
       });
+    });
 
-    if (!response.ok) {
-      // Forward the API's error status and message if possible
-      const errorBody = await response.text();
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({ error: `API Error: ${response.statusText}`, details: errorBody }),
-      };
+    // Execute all fetches concurrently
+    const responses = await Promise.all(fetchPromises);
+
+    const competitions = [];
+    for (const response of responses) {
+      if (response.ok) {
+        const data = await response.json();
+        // The API returns a single competition object per call.
+        // We only add it if it actually has events for the given timeframe.
+        if (data && data.events && data.events.length > 0) {
+          competitions.push(data);
+        }
+      } else {
+        // Log an error but don't fail the entire function, to allow for partial data
+        console.error(`API Error for one of the leagues: ${response.status} ${response.statusText}`);
+      }
     }
 
-    const data = await response.json();
-
+    // Return the aggregated data in the format the frontend expects
     return {
       statusCode: 200,
-      body: JSON.stringify(data),
+      body: JSON.stringify({ competitions }),
     };
 
   } catch (error) {
+    // Handle any unexpected errors during the fetch operation
     return {
       statusCode: 500,
       body: JSON.stringify({ error: `Function Error: ${error.message}` }),
