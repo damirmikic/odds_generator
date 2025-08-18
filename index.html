@@ -840,7 +840,8 @@
             const event = apiEvents.find(e => e.id == eventId);
 
             const createBet = (playerName, m2, m3, o, amf = true) => {
-                const finalOddValue = amf ? applyMarginToOdd(o, margin) : o;
+                const currentMargin = amf ? margin : 0;
+                const finalOddValue = applyMarginToOdd(o, currentMargin);
                 
                 if (finalOddValue === null || finalOddValue <= 1) return;
 
@@ -862,14 +863,11 @@
                     const playerLambda = getLambdaFromProb(oddToProb(baseOdds['daje-gol']));
                     const p_poisson = [poissonPMF(playerLambda, 0), poissonPMF(playerLambda, 1), poissonPMF(playerLambda, 2)];
                     
-                    // Main goalscorer odd - no margin, as requested
                     createBet(playerName, 'daje', 'gol', baseOdds['daje-gol'], false);
-                    
                     createBet(playerName, 'daje gol', 'do 10. min', probToOdd(1 - poissonPMF(playerLambda / 9, 0)));
                     createBet(playerName, 'daje', '2+ golova', probToOdd(1 - p_poisson[0] - p_poisson[1]));
                     createBet(playerName, 'daje', '3+ golova', probToOdd(1 - p_poisson[0] - p_poisson[1] - p_poisson[2]));
                     
-                    // UPDATED LOGIC for halves
                     const lambda_1h = playerLambda * 0.44;
                     const lambda_2h = playerLambda * 0.56;
                     
@@ -890,15 +888,18 @@
                     
                     if (event && event.lambdaHome && event.lambdaAway) {
                         const teamSide = card.dataset.teamSide;
-                        const teamLambda = teamSide === 'home' ? event.lambdaHome : event.lambdaAway;
-                        const teamWinOdd = parseFloat($(`#team-select option[value="${teamSide}"]`).dataset.odd) || 0;
-                        
-                        if (teamLambda > 0 && teamWinOdd > 1) {
-                            const opponentSide = teamSide === 'home' ? 'away' : 'home';
-                            const opponentLambda = opponentSide === 'home' ? event.lambdaHome : event.lambdaAway;
-                            const probScoresAndWins = scoreAndWin(teamLambda, opponentLambda, playerLambda, 15);
-                            const teamName = teamSide === 'home' ? event.home.name : event.away.name;
-                            createBet(playerName, 'daje gol i', `${teamName} pobedjuje`, probToOdd(probScoresAndWins), true);
+                        const teamOption = $(`#team-select option[value="${teamSide}"]`);
+                        if(teamOption) {
+                            const teamWinOdd = parseFloat(teamOption.dataset.odd) || 0;
+                            const teamLambda = teamSide === 'home' ? event.lambdaHome : event.lambdaAway;
+                            
+                            if (teamLambda > 0 && teamWinOdd > 1) {
+                                const opponentSide = teamSide === 'home' ? 'away' : 'home';
+                                const opponentLambda = opponentSide === 'home' ? event.lambdaHome : event.lambdaAway;
+                                const probScoresAndWins = scoreAndWin(teamLambda, opponentLambda, playerLambda, 15);
+                                const teamName = teamSide === 'home' ? event.home.name : event.away.name;
+                                createBet(playerName, 'daje gol i', `${teamName} pobedjuje`, probToOdd(probScoresAndWins), true);
+                            }
                         }
                     }
                 }
@@ -915,15 +916,12 @@
                     const baseOdd = baseOdds['faulovi-1'];
                     
                     if (baseOdd < 1.3) {
-                        // Ako je kvota za 1+ ispod 1.3, prikazujemo 2+ i 3+
                         createBet(playerName, 'ukupno nacinjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]), true);
-                        // Za 3+ koristimo marginu od 20%
-                        const originalMargin = margin;
-                        margin = 20;
-                        createBet(playerName, 'ukupno nacinjenih', 'faulova 3+', probToOdd(1 - p[0] - p[1] - p[2]), true);
-                        margin = originalMargin;
+                        let tempMargin = 20;
+                        const tempFinalOdd = applyMarginToOdd(probToOdd(1 - p[0] - p[1] - p[2]), tempMargin);
+                        allResults.push({ player: playerName, market2: 'ukupno nacinjenih', market3: 'faulova 3+', odd: formatOdd(tempFinalOdd) });
+
                     } else {
-                        // Inače prikazujemo 1+ i 2+
                         createBet(playerName, 'ukupno nacinjenih', 'faulova 1+', baseOdd, false);
                         createBet(playerName, 'ukupno nacinjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]), true);
                     }
@@ -937,15 +935,11 @@
                     const baseOdd = baseOdds['faulovi-iznudjeni-1'];
                     
                     if (baseOdd < 1.3) {
-                        // Ako je kvota za 1+ ispod 1.3, prikazujemo 2+ i 3+
                         createBet(playerName, 'ukupno iznudjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]), true);
-                        // Za 3+ koristimo marginu od 20%
-                        const originalMargin = margin;
-                        margin = 20;
-                        createBet(playerName, 'ukupno iznudjenih', 'faulova 3+', probToOdd(1 - p[0] - p[1] - p[2]), true);
-                        margin = originalMargin;
+                        let tempMargin = 20;
+                        const tempFinalOdd = applyMarginToOdd(probToOdd(1 - p[0] - p[1] - p[2]), tempMargin);
+                        allResults.push({ player: playerName, market2: 'ukupno iznudjenih', market3: 'faulova 3+', odd: formatOdd(tempFinalOdd) });
                     } else {
-                        // Inače prikazujemo 1+ i 2+
                         createBet(playerName, 'ukupno iznudjenih', 'faulova 1+', baseOdd, false);
                         createBet(playerName, 'ukupno iznudjenih', 'faulova 2+', probToOdd(1 - p[0] - p[1]), true);
                     }
