@@ -26,7 +26,8 @@ exports.handler = async (event, context) => {
     'soccer-international-clubs-t6eeb-uefa-europa-conference-league',
     'soccer-germany-bundesliga',
     'soccer-italy-serie-a',
-    'soccer-spain-laliga'
+    'soccer-spain-laliga',
+    'soccer-serbia-superliga'
   ];
 
   try {
