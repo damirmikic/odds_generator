@@ -1335,10 +1335,12 @@
             }
             const eventsInCompetition = apiEvents.filter(e => e.competitionKey === competitionKey);
             eventsInCompetition.forEach(event => {
-                const option = document.createElement('option');
-                option.value = event.id;
-                option.textContent = `${event.home.name} vs ${event.away.name}`;
-                eventSelect.appendChild(option);
+                if (event && event.home && event.away && event.home.name && event.away.name) {
+                    const option = document.createElement('option');
+                    option.value = event.id;
+                    option.textContent = `${event.home.name} vs ${event.away.name}`;
+                    eventSelect.appendChild(option);
+                }
             });
             eventSelect.disabled = false;
         };
