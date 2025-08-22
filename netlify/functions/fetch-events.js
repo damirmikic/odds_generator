@@ -2,6 +2,10 @@
  * Netlify serverless function to securely fetch sports events data from the Cloudbet API.
  * This function now fetches data for a specific list of top leagues.
  */
+
+// Import node-fetch to handle server-side fetching
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
 exports.handler = async (event, context) => {
   // Get the secret API key from the Netlify environment variables
   const API_KEY = process.env.API_KEY;
@@ -14,9 +18,10 @@ exports.handler = async (event, context) => {
     };
   }
   
-  // Set up the time window for the API call (from now to 48 hours in the future)
+  // Set up the time window for the API call (from now to 72 hours in the future)
   const from = Math.floor(Date.now() / 1000);
-  const to = from + (72 * 3600); // 
+  const to = from + (72 * 3600); 
+  
   // List of specific league keys to fetch
   const leagueKeys = [
     'soccer-france-ligue-1',
@@ -27,7 +32,7 @@ exports.handler = async (event, context) => {
     'soccer-germany-bundesliga',
     'soccer-italy-serie-a',
     'soccer-spain-laliga',
-    'soccer-serbia-superliga'
+    'soccer-serbia-superliga' // Added Serbian Superliga
   ];
 
   try {
@@ -60,11 +65,13 @@ exports.handler = async (event, context) => {
     // Return the aggregated data in the format the frontend expects
     return {
       statusCode: 200,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ competitions }),
     };
 
   } catch (error) {
     // Handle any unexpected errors during the fetch operation
+    console.error("Function Error:", error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: `Function Error: ${error.message}` }),
