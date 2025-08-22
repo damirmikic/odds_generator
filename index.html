@@ -311,7 +311,6 @@
                     </div>
                 </section>
 
-                <!-- Common Match Details -->
                 <section id="match-details-section" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 hidden">
                     <div class="input-group md:col-span-1"><label for="match-name">Naziv Utakmice</label><input type="text" id="match-name"></div>
                     <div class="grid grid-cols-2 gap-6">
@@ -320,7 +319,6 @@
                     </div>
                 </section>
 
-                <!-- Players Tab Content -->
                 <div id="tab-players" class="tab-content active">
                     <form id="odds-form">
                         <section class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mb-8">
@@ -357,7 +355,6 @@
                     </form>
                 </div>
 
-                <!-- Specials Tab Content -->
                 <div id="tab-specials" class="tab-content">
                     <form id="specials-form">
                          <section class="mb-8 p-6 bg-slate-50 border border-slate-200 rounded-lg">
@@ -419,7 +416,6 @@
                     </form>
                 </div>
 
-                <!-- Common Action Buttons & Preview -->
                 <div class="flex flex-col md:flex-row justify-center items-center gap-4 my-8">
                     <button id="generate-btn" class="w-full md:w-auto action-btn primary">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
@@ -465,7 +461,6 @@
         </div>
     </div>
 
-    <!-- Tour HTML -->
     <div id="tour-tooltip" class="hidden fixed bg-white rounded-lg shadow-xl z-50 p-4 max-w-xs transition-all duration-300">
         <div id="tour-arrow" class="absolute bg-white w-3 h-3 transform rotate-45"></div>
         <button id="tour-close">&times;</button>
@@ -1040,6 +1035,14 @@
             const p_red = oddToProb(redCardOdd);
             const lambdaPerMin = goalsLambda / 90;
 
+            // NEW: Probabilities based on goal lambda
+            const prob_sub_goal = 1 - Math.exp(-goalsLambda * 0.15);
+            const prob_header_goal = 1 - Math.exp(-goalsLambda * 0.17);
+            const prob_outside_box_goal = 1 - Math.exp(-goalsLambda * 0.12);
+            const prob_free_kick_goal = 1 - Math.exp(-goalsLambda * 0.05);
+            const prob_injury_1h = 1 - Math.exp(-lambdaPerMin * 3);
+            const prob_injury_2h = 1 - Math.exp(-lambdaPerMin * 6);
+
             // Calculations
             createSpecialBet('Oba tima 2+ kartona', '', p_2plus_cards_team * p_2plus_cards_team);
             createSpecialBet('Penal i crveni karton', '', calculateCorrelatedProbability(p_penal, p_red, 1.1));
@@ -1057,15 +1060,18 @@
             createSpecialBet('15+ kornera', 'i GG', p_15plus_corners * p_gg);
             createSpecialBet('15+ kornera', 'i 3+ golova', p_15plus_corners * p_3plus_goals);
             createSpecialBet('3+ kornera', 'u svakom pol.', p_3plus_corners_half);
-            createSpecialBet('Gol u nadoknadi', '2. pol.', 1 - Math.exp(-lambdaPerMin * 6));
-            createSpecialBet('Gol u nadoknadi', '1. pol.', 1 - Math.exp(-lambdaPerMin * 3));
             createSpecialBet('Sudija gleda VAR', '', 0.4);
-            createSpecialBet('Izmena postize gol', '', 0.2);
             createSpecialBet('Precka ili stativa', 'na mecu', 0.5);
-            createSpecialBet('Gol iz slobodnog udarca', '', 0.08);
-            createSpecialBet('Gol izvan 16m', '', 0.2);
             createSpecialBet('Dosudjen penal', 'za oba tima', (p_penal/2) * (p_penal/2));
-            createSpecialBet('Gol glavom na mecu', '', 0.28);
+            
+            // UPDATED: Use new probabilities
+            createSpecialBet('Gol u nadoknadi', '2. pol.', prob_injury_2h);
+            createSpecialBet('Gol u nadoknadi', '1. pol.', prob_injury_1h);
+            createSpecialBet('Izmena postize gol', '', prob_sub_goal);
+            createSpecialBet('Gol iz slobodnog udarca', '', prob_free_kick_goal);
+            createSpecialBet('Gol izvan 16m', '', prob_outside_box_goal);
+            createSpecialBet('Gol glavom na mecu', '', prob_header_goal);
+
 
             return results;
         };
