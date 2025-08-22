@@ -2,10 +2,6 @@
  * Netlify serverless function to securely fetch sports events data from the Cloudbet API.
  * This function now fetches data for a specific list of top leagues.
  */
-
-// Import node-fetch to handle server-side fetching
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-
 exports.handler = async (event, context) => {
   // Get the secret API key from the Netlify environment variables
   const API_KEY = process.env.API_KEY;
@@ -32,7 +28,7 @@ exports.handler = async (event, context) => {
     'soccer-germany-bundesliga',
     'soccer-italy-serie-a',
     'soccer-spain-laliga',
-    'soccer-serbia-superliga' // Added Serbian Superliga
+    'soccer-serbia-superliga'
   ];
 
   try {
