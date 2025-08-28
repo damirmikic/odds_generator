@@ -34,7 +34,7 @@ exports.handler = async (event, context) => {
   try {
     // Create a fetch promise for each league
     const fetchPromises = leagueKeys.map(key => {
-      const API_URL = `https://sports-api.cloudbet.com/pub/v2/odds/competitions/${key}?from=${from}&to=${to}&players=true&limit=100`;
+      const API_URL = `https://sports-api.cloudbet.com/pub/v2/odds/competitions/${key}?from=${from}&to=${to}&players=true&limit=50`;
       return fetch(API_URL, {
         headers: { 'X-API-Key': API_KEY }
       });
